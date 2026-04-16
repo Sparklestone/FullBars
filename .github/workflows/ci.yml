@@ -14,7 +14,7 @@ concurrency:
 jobs:
   test:
     name: Xcode test + coverage gate
-    runs-on: macos-14
+    runs-on: macos-15
     timeout-minutes: 25
 
     env:
@@ -63,7 +63,7 @@ jobs:
           fi
           # Total line coverage, as a percentage.
           COVERAGE=$(xcrun xccov view --report --json TestResults.xcresult \
-            | python3 -c 'import json,sys; r=json.load(sys.stdin); print(f"{r[\"lineCoverage\"]*100:.2f}")')
+            | python3 -c 'import json,sys; r=json.load(sys.stdin); print("%.2f" % (r["lineCoverage"]*100))')
           echo "coverage=$COVERAGE" >> "$GITHUB_OUTPUT"
           echo "Line coverage: $COVERAGE%"
           echo "COVERAGE=$COVERAGE" >> "$GITHUB_ENV"
