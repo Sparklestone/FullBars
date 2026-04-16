@@ -15,7 +15,7 @@ jobs:
   test:
     name: Xcode test + coverage gate
     runs-on: macos-15
-    timeout-minutes: 25
+    timeout-minutes: 15
 
     env:
       SCHEME: FullBars
@@ -41,12 +41,15 @@ jobs:
             xcrun simctl boot "$UDID" || true
           fi
 
-      - name: Build & test
+      - name: Build & test (unit tests only)
         run: |
           set -o pipefail
+          # Run only unit tests in CI — UI tests need ~15 min of simulator
+          # time which exceeds free-tier budgets. Run UI tests locally.
           xcodebuild test \
             -scheme "$SCHEME" \
             -destination "$DESTINATION" \
+            -only-testing:FullBarsTests \
             -enableCodeCoverage YES \
             -resultBundlePath TestResults.xcresult \
             | xcbeautify --renderer github-actions || EXIT=$?
