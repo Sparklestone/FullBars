@@ -1,0 +1,90 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Xcode test + coverage gate
+    runs-on: macos-14
+    timeout-minutes: 25
+
+    env:
+      SCHEME: FullBars
+      DESTINATION: "platform=iOS Simulator,name=iPhone 16,OS=latest"
+      # Fail the build if overall line coverage dips below this.
+      # Raise as the suite matures.
+      COVERAGE_FLOOR: "55.0"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Boot simulator
+        run: |
+          xcrun simctl list devices available | head -40
+          # Pre-boot so xcodebuild doesn't spend its budget waiting for it.
+          UDID=$(xcrun simctl list devices available \
+            | grep -E "iPhone 16 \(" | head -1 \
+            | sed -E 's/.*\(([A-F0-9-]+)\).*/\1/')
+          if [ -n "$UDID" ]; then
+            xcrun simctl boot "$UDID" || true
+          fi
+
+      - name: Build & test
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -scheme "$SCHEME" \
+            -destination "$DESTINATION" \
+            -enableCodeCoverage YES \
+            -resultBundlePath TestResults.xcresult \
+            | xcbeautify --renderer github-actions || EXIT=$?
+          # xcbeautify returns non-zero on test failures; we'll surface coverage
+          # below regardless, then re-exit.
+          exit ${EXIT:-0}
+
+      - name: Extract coverage
+        if: always()
+        run: |
+          if [ ! -d TestResults.xcresult ]; then
+            echo "No xcresult bundle; skipping coverage"
+            exit 0
+          fi
+          # Total line coverage, as a percentage.
+          COVERAGE=$(xcrun xccov view --report --json TestResults.xcresult \
+            | python3 -c 'import json,sys; r=json.load(sys.stdin); print(f"{r[\"lineCoverage\"]*100:.2f}")')
+          echo "coverage=$COVERAGE" >> "$GITHUB_OUTPUT"
+          echo "Line coverage: $COVERAGE%"
+          echo "COVERAGE=$COVERAGE" >> "$GITHUB_ENV"
+
+      - name: Enforce coverage floor
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import os, sys
+          cov = float(os.environ.get("COVERAGE", "0") or 0)
+          floor = float(os.environ["COVERAGE_FLOOR"])
+          if cov < floor:
+              print(f"::error::Coverage {cov:.2f}% is below floor {floor:.2f}%")
+              sys.exit(1)
+          print(f"Coverage {cov:.2f}% >= floor {floor:.2f}% ✓")
+          PY
+
+      - name: Upload xcresult bundle
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcresult-${{ github.run_id }}
+          path: TestResults.xcresult
+          retention-days: 7

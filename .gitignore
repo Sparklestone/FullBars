@@ -1,0 +1,21 @@
+# Xcode
+DerivedData/
+*.xcuserstate
+*.xcscmblueprint
+xcuserdata/
+TestResults.xcresult
+
+# macOS
+.DS_Store
+.test-logs/
+
+# Build artifacts
+build/
+
+# Scripts (local dev helpers)
+fb_run_*.sh
+run_tests.sh
+add_test_targets.rb
+
+# Snapshot references (recorded locally, large PNGs)
+__Snapshots__/
