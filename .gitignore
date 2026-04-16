@@ -16,6 +16,10 @@ build/
 fb_run_*.sh
 run_tests.sh
 add_test_targets.rb
+add_files_to_xcode.rb
+
+# Build logs
+*.log
 
 # Snapshot references (recorded locally, large PNGs)
 __Snapshots__/
