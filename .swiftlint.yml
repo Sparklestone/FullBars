@@ -1,0 +1,21 @@
+# SwiftLint configuration for FullBars
+# Docs: https://realm.github.io/SwiftLint/rule-directory.html
+
+excluded:
+  - DerivedData
+  - build
+  - .build
+  - Pods
+
+disabled_rules:
+  - trailing_whitespace       # noisy in early adoption
+  - line_length               # relax until codebase is cleaned up
+  - function_body_length      # some views are long by nature
+  - type_body_length          # same reason
+
+opt_in_rules:
+  - empty_count               # prefer .isEmpty over .count == 0
+  - closure_spacing
+  - force_unwrapping          # warn on force-unwraps
+
+force_unwrapping: warning      # warn, don't error — yet

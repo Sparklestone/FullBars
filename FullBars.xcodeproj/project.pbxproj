@@ -35,6 +35,8 @@
 		4350176485651FC074874AA5 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 3EC61C751BCD4C1B2FD84491 /* Foundation.framework */; };
 		43C14AB10C0873FF715DF504 /* DevicePlacement.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8484DA8A910889456788AB07 /* DevicePlacement.swift */; };
 		461BB25B43FC04798B13806C /* GradingServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63C1EAAB49D0CD2E723AC0A4 /* GradingServiceTests.swift */; };
+		7D4C2A1B5E3F7A2C8B9F0D1E /* DataCollectionServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A1F4B2C6D7E8A9B0C1D2E3F /* DataCollectionServiceTests.swift */; };
+		8E5D3B2C6F4A1D7E9C0B3A4F /* SettingsViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B2G5C3D7E5F2A8B0D1C3E4F /* SettingsViewModelTests.swift */; };
 		4ABB896A1F5B8CE1097B958C /* BLEService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CDFD6FB3A01334099FE986B /* BLEService.swift */; };
 		4C556ABBBB68E20DCFE79957 /* HeatmapPoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = A01043A8CD09B79236DA40C3 /* HeatmapPoint.swift */; };
 		4CAFFF6DC3B916D498E0A125 /* BLEScannerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 27B157B51686FF75553B8972 /* BLEScannerViewModel.swift */; };
@@ -167,6 +169,8 @@
 		5BC5BAA8441F509AF17B51BF /* NetworkMonitorService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkMonitorService.swift; sourceTree = "<group>"; };
 		612EC2D9DC2281B729C6916D /* ARWalkthroughView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARWalkthroughView.swift; sourceTree = "<group>"; };
 		63C1EAAB49D0CD2E723AC0A4 /* GradingServiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = GradingServiceTests.swift; sourceTree = "<group>"; };
+		3A1F4B2C6D7E8A9B0C1D2E3F /* DataCollectionServiceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DataCollectionServiceTests.swift; sourceTree = "<group>"; };
+		4B2G5C3D7E5F2A8B0D1C3E4F /* SettingsViewModelTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SettingsViewModelTests.swift; sourceTree = "<group>"; };
 		661060F240F6DA6115A4D1E5 /* ProPaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProPaywallView.swift; sourceTree = "<group>"; };
 		6809F01809456884A4A2F622 /* SpeedGaugeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeedGaugeView.swift; sourceTree = "<group>"; };
 		6C07F4B19DD9A1B0983B1CAD /* FullBarsUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FullBarsUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -357,6 +361,8 @@
 				1228A3A353247B82DA4F5E2A /* RoomGeometryTests.swift */,
 				438DC0A8078BD894E1B1109B /* HomeConfigurationTests.swift */,
 				63C1EAAB49D0CD2E723AC0A4 /* GradingServiceTests.swift */,
+				3A1F4B2C6D7E8A9B0C1D2E3F /* DataCollectionServiceTests.swift */,
+				4B2G5C3D7E5F2A8B0D1C3E4F /* SettingsViewModelTests.swift */,
 				10E34E9D9687C72A4B44077C /* DiagnosticsEngineTests.swift */,
 				D87E725E36EACB50940A4DEF /* CoveragePlanningServiceTests.swift */,
 			);
@@ -860,6 +866,8 @@
 				6908ADD6457BBAB3F7CBCDD0 /* SwiftDataPersistenceTests.swift in Sources */,
 				09CF21F8C1392743EEC0D6AD /* ViewSnapshotTests.swift in Sources */,
 				461BB25B43FC04798B13806C /* GradingServiceTests.swift in Sources */,
+				7D4C2A1B5E3F7A2C8B9F0D1E /* DataCollectionServiceTests.swift in Sources */,
+				8E5D3B2C6F4A1D7E9C0B3A4F /* SettingsViewModelTests.swift in Sources */,
 				F9D0B0D575A9CBC9C8CF3823 /* DiagnosticsEngineTests.swift in Sources */,
 				42A2FCF5A6BA8D714F0E3B4C /* CoveragePlanningServiceTests.swift in Sources */,
 				881848B9DE29D75CF089E15F /* SpeedTestAndGradePersistenceTests.swift in Sources */,
