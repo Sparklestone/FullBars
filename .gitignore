@@ -23,3 +23,12 @@ add_files_to_xcode.rb
 
 # Snapshot references (recorded locally, large PNGs)
 __Snapshots__/
+
+# Fastlane
+fastlane/report.xml
+fastlane/test_output/
+fastlane/build_output/
+fastlane/README.md
+
+# Backup files
+*.backup

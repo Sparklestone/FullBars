@@ -1,0 +1,6 @@
+# App identifier and Apple ID for Fastlane
+# Uncomment and fill in when ready to deploy:
+#
+# app_identifier("com.fullbars.app")
+# apple_id("your@apple.id")
+# team_id("TEAM_ID")

@@ -1,0 +1,76 @@
+default_platform(:ios)
+
+platform :ios do
+  # ── Test Lanes ───────────────────────────────────────────────
+
+  desc "Run unit tests"
+  lane :test do
+    scan(
+      scheme: "FullBars",
+      devices: ["iPhone 16"],
+      only_testing: ["FullBarsTests"],
+      code_coverage: true,
+      result_bundle: true,
+      output_directory: "fastlane/test_output"
+    )
+  end
+
+  desc "Run UI tests"
+  lane :test_ui do
+    scan(
+      scheme: "FullBars",
+      devices: ["iPhone 16"],
+      only_testing: ["FullBarsUITests"],
+      result_bundle: true,
+      output_directory: "fastlane/test_output"
+    )
+  end
+
+  desc "Run all tests (unit + UI)"
+  lane :test_all do
+    scan(
+      scheme: "FullBars",
+      devices: ["iPhone 16"],
+      code_coverage: true,
+      result_bundle: true,
+      output_directory: "fastlane/test_output"
+    )
+  end
+
+  # ── Build & Deploy ──────────────────────────────────────────
+
+  desc "Build and upload to TestFlight"
+  lane :beta do
+    setup_ci if is_ci
+
+    # Increment build number to current timestamp
+    increment_build_number(
+      build_number: Time.now.strftime("%Y%m%d%H%M")
+    )
+
+    # Match signing (requires match setup — see fastlane/README)
+    # match(type: "appstore", readonly: is_ci)
+
+    build_app(
+      scheme: "FullBars",
+      export_method: "app-store",
+      output_directory: "fastlane/build_output"
+    )
+
+    upload_to_testflight(
+      skip_waiting_for_build_processing: true,
+      distribute_external: false
+    )
+  end
+
+  # ── Utilities ───────────────────────────────────────────────
+
+  desc "Lint with SwiftLint"
+  lane :lint do
+    swiftlint(
+      mode: :lint,
+      strict: true,
+      reporter: "github"
+    )
+  end
+end
