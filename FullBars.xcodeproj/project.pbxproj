@@ -114,6 +114,9 @@
 		F9D0B0D575A9CBC9C8CF3823 /* DiagnosticsEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10E34E9D9687C72A4B44077C /* DiagnosticsEngineTests.swift */; };
 		FE17439BD2C4195AA2B0582F /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB4F630C6F17245DDAFD6ED4 /* OnboardingView.swift */; };
 		FECFB0DA064AF1FF6FFD8F3D /* MetricCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 486732FCD4AF6AEEB9DFE12B /* MetricCard.swift */; };
+		AA11111111111111AABB000E /* FullBarsWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11111111111111AABB0009 /* FullBarsWidget.swift */; };
+		AA11111111111111AABB000F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AA11111111111111AABB000C /* Assets.xcassets */; };
+		AA11111111111111AABB0013 /* FullBarsWidget.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = AA11111111111111AABB0001 /* FullBarsWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -131,7 +134,28 @@
 			remoteGlobalIDString = 53A0018FC380C2D2FFBA8278;
 			remoteInfo = FullBars;
 		};
+		AA11111111111111AABB0010 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = EEF5D4FAE237C00BCCBA814E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = AA11111111111111AABB0002;
+			remoteInfo = FullBarsWidget;
+		};
 /* End PBXContainerItemProxy section */
+/* Begin PBXCopyFilesBuildPhase section */
+		AA11111111111111AABB0012 /* Embed App Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				AA11111111111111AABB0013 /* FullBarsWidget.appex in Embed App Extensions */,
+			);
+			name = "Embed App Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 
 /* Begin PBXFileReference section */
 		02494E5E26839C2F834F074C /* SignalStrengthIndicator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignalStrengthIndicator.swift; sourceTree = "<group>"; };
@@ -246,6 +270,11 @@
 		F67F4E23D507C8569F5CE2D5 /* ARSessionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARSessionService.swift; sourceTree = "<group>"; };
 		FA1FAC22D4011A3D3BCDE9F2 /* BLEScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEScannerView.swift; sourceTree = "<group>"; };
 		FF2A8A123E42E575AC76598F /* RescanHistoryTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RescanHistoryTests.swift; sourceTree = "<group>"; };
+		AA11111111111111AABB0001 /* FullBarsWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = FullBarsWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA11111111111111AABB0009 /* FullBarsWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullBarsWidget.swift; sourceTree = "<group>"; };
+		AA11111111111111AABB000A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		AA11111111111111AABB000B /* FullBarsWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = FullBarsWidget.entitlements; sourceTree = "<group>"; };
+		AA11111111111111AABB000C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -272,6 +301,13 @@
 				10D16D0A86B9005770C5EFC3 /* ARKit.framework in Frameworks */,
 				8A700CC1DDBB9B1362F652E4 /* SceneKit.framework in Frameworks */,
 				D3258F4438BCC8390587265A /* RoomPlan.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AA11111111111111AABB0005 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -358,6 +394,7 @@
 			isa = PBXGroup;
 			children = (
 				48D9AEFEF225BE878D90DC77 /* FullBars */,
+				AA11111111111111AABB000D /* FullBarsWidget */,
 				AEAF98E380955348B5437A9B /* Frameworks */,
 				C98ACB07C4FF483B192A36F6 /* Products */,
 			);
@@ -590,6 +627,7 @@
 				DFE78C559F7DAB931CE82269 /* FullBars.app */,
 				AE22516DFBE7647D58418C03 /* FullBarsTests.xctest */,
 				6C07F4B19DD9A1B0983B1CAD /* FullBarsUITests.xctest */,
+				AA11111111111111AABB0001 /* FullBarsWidget.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -658,6 +696,17 @@
 			path = Views;
 			sourceTree = "<group>";
 		};
+		AA11111111111111AABB000D /* FullBarsWidget */ = {
+			isa = PBXGroup;
+			children = (
+				AA11111111111111AABB0009 /* FullBarsWidget.swift */,
+				AA11111111111111AABB000C /* Assets.xcassets */,
+				AA11111111111111AABB000B /* FullBarsWidget.entitlements */,
+				AA11111111111111AABB000A /* Info.plist */,
+			);
+			path = FullBarsWidget;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -675,6 +724,9 @@
 				ED735D32F7939D942A67621C /* PBXTargetDependency */,
 			);
 			name = FullBarsTests;
+			packageProductDependencies = (
+				BB11111111111111CCDD0002 /* SnapshotTesting */,
+			);
 			productName = FullBarsTests;
 			productReference = AE22516DFBE7647D58418C03 /* FullBarsTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
@@ -686,10 +738,12 @@
 				C0486B813308ACAA77AA6B87 /* Sources */,
 				8C1471BADE579865FFDA59AC /* Resources */,
 				F779B8DF061EDA46A158D835 /* Frameworks */,
+				AA11111111111111AABB0012 /* Embed App Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				AA11111111111111AABB0011 /* PBXTargetDependency */,
 			);
 			name = FullBars;
 			productName = FullBars;
@@ -714,6 +768,23 @@
 			productReference = 6C07F4B19DD9A1B0983B1CAD /* FullBarsUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		AA11111111111111AABB0002 /* FullBarsWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA11111111111111AABB0006 /* Build configuration list for PBXNativeTarget "FullBarsWidget" */;
+			buildPhases = (
+				AA11111111111111AABB0003 /* Sources */,
+				AA11111111111111AABB0004 /* Resources */,
+				AA11111111111111AABB0005 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = FullBarsWidget;
+			productName = FullBarsWidget;
+			productReference = AA11111111111111AABB0001 /* FullBarsWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -735,11 +806,15 @@
 			preferredProjectObjectVersion = 77;
 			productRefGroup = C98ACB07C4FF483B192A36F6 /* Products */;
 			projectDirPath = "";
+			packageReferences = (
+				BB11111111111111CCDD0001 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */,
+			);
 			projectRoot = "";
 			targets = (
 				53A0018FC380C2D2FFBA8278 /* FullBars */,
 				1031A088B9DDC6F62A6DEBBE /* FullBarsTests */,
 				D4C48ED60863DBB0236F3B00 /* FullBarsUITests */,
+				AA11111111111111AABB0002 /* FullBarsWidget */,
 			);
 		};
 /* End PBXProject section */
@@ -765,6 +840,14 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		AA11111111111111AABB0004 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA11111111111111AABB000F /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -892,6 +975,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AA11111111111111AABB0003 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				AA11111111111111AABB000E /* FullBarsWidget.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -906,6 +997,12 @@
 			name = FullBars;
 			target = 53A0018FC380C2D2FFBA8278 /* FullBars */;
 			targetProxy = 8D74867BE88702CA912EACB7 /* PBXContainerItemProxy */;
+		};
+		AA11111111111111AABB0011 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			name = FullBarsWidget;
+			target = AA11111111111111AABB0002 /* FullBarsWidget */;
+			targetProxy = AA11111111111111AABB0010 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -1167,6 +1264,67 @@
 			};
 			name = Release;
 		};
+		AA11111111111111AABB0007 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = FullBarsWidget/FullBarsWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 7588DAA645;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = FullBarsWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = FullBarsWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.fullbars.app.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		AA11111111111111AABB0008 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
+				CODE_SIGN_ENTITLEMENTS = FullBarsWidget/FullBarsWidget.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = 7588DAA645;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = FullBarsWidget/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = FullBarsWidget;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.fullbars.app.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1206,7 +1364,35 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		AA11111111111111AABB0006 /* Build configuration list for PBXNativeTarget "FullBarsWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AA11111111111111AABB0007 /* Debug */,
+				AA11111111111111AABB0008 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		BB11111111111111CCDD0001 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/pointfreeco/swift-snapshot-testing";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.15.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		BB11111111111111CCDD0002 /* SnapshotTesting */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = BB11111111111111CCDD0001 /* XCRemoteSwiftPackageReference "swift-snapshot-testing" */;
+			productName = SnapshotTesting;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = EEF5D4FAE237C00BCCBA814E /* Project object */;
 }
