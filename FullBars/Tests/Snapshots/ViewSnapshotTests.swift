@@ -55,23 +55,72 @@ final class ViewSnapshotTests: XCTestCase {
 
     /// The preview fixtures build views against an in-memory ModelContainer
     /// so snapshots are deterministic. Update these as the view APIs evolve.
+    /// In-memory container with the full schema for snapshot previews.
+    @MainActor
+    private func makeContainer() throws -> ModelContainer {
+        let schema = Schema([
+            HomeConfiguration.self, Room.self, Doorway.self,
+            DevicePlacement.self, HeatmapPoint.self,
+            SpeedTestResult.self, SpaceGrade.self, WalkthroughSession.self,
+        ])
+        return try ModelContainer(for: schema, configurations: [
+            ModelConfiguration(isStoredInMemoryOnly: true)
+        ])
+    }
+
     @MainActor
     private func makeOnboardingPreview() -> some View {
-        // Replace with the real OnboardingFlow preview once the type is importable.
-        Text("Onboarding preview — wire to OnboardingFlow when exposing an init")
+        OnboardingFlow()
             .frame(width: 390, height: 844)
+            .preferredColorScheme(.dark)
     }
 
     @MainActor
     private func makeResultsPreview(roomCount: Int) -> some View {
-        Text("Results preview (\(roomCount) rooms) — wire to ResultsHomeView with in-memory container")
+        let container = try! makeContainer()
+        if roomCount > 0 {
+            let ctx = container.mainContext
+            let home = HomeConfiguration(name: "Snapshot Home", squareFootage: 1800, numberOfFloors: 1)
+            ctx.insert(home)
+            let roomTypes: [RoomType] = [.livingRoom, .kitchen, .bedroom, .bathroom, .office, .hallway]
+            for i in 0..<roomCount {
+                let room = Room(
+                    homeId: home.id,
+                    roomTypeRaw: roomTypes[i % roomTypes.count].rawValue,
+                    downloadMbps: Double.random(in: 40...150),
+                    uploadMbps: Double.random(in: 10...40),
+                    pingMs: Double.random(in: 8...50),
+                    gradeScore: Double.random(in: 55...95),
+                    gradeLetterRaw: ["A", "B", "C", "B"][i % 4],
+                    deadZoneCount: i % 2
+                )
+                ctx.insert(room)
+            }
+            try? ctx.save()
+        }
+        return NavigationStack { ResultsHomeView() }
+            .modelContainer(container)
             .frame(width: 390, height: 844)
+            .preferredColorScheme(.dark)
     }
 
     @MainActor
     private func makeSettingsPreview() -> some View {
-        Text("Settings preview — wire to SettingsHomeView with in-memory container")
+        let container = try! makeContainer()
+        let ctx = container.mainContext
+        let home = HomeConfiguration(
+            name: "My House",
+            squareFootage: 2200,
+            numberOfFloors: 2,
+            ispName: "Comcast",
+            ispPromisedDownloadMbps: 200
+        )
+        ctx.insert(home)
+        try? ctx.save()
+        return NavigationStack { SettingsHomeView() }
+            .modelContainer(container)
             .frame(width: 390, height: 844)
+            .preferredColorScheme(.dark)
     }
 }
 

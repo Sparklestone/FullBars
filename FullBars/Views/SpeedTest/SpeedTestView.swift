@@ -37,6 +37,7 @@ struct SpeedTestView: View {
                     .pickerStyle(.segmented)
                     .padding(.horizontal, 16)
                     .padding(.top, 8)
+                    .accessibilityIdentifier(AccessibilityID.SpeedTest.tabPicker)
 
                     if selectedTab == .current {
                 ScrollView {
@@ -381,6 +382,7 @@ struct SpeedTestView: View {
         .disabled(viewModel.speedTestService.isRunning && viewModel.currentResult == nil)
         .padding(.horizontal)
         .sensoryFeedback(.selection, trigger: viewModel.speedTestService.isRunning)
+        .accessibilityIdentifier(viewModel.speedTestService.isRunning ? AccessibilityID.SpeedTest.stopButton : AccessibilityID.SpeedTest.startButton)
     }
 
     private var shareButton: some View {
@@ -401,6 +403,7 @@ struct SpeedTestView: View {
             .foregroundStyle(primaryColor)
         }
         .padding(.horizontal)
+        .accessibilityIdentifier(AccessibilityID.SpeedTest.shareButton)
     }
 
     // MARK: - History Section

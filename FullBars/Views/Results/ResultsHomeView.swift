@@ -95,9 +95,10 @@ struct ResultsHomeView: View {
                     }
                     VStack(alignment: .leading, spacing: 3) {
                         HStack(spacing: 6) {
-                            Text("Share your Wi-Fi badge")
+                            Text(String(localized: "results.share_badge"))
                                 .font(.system(.subheadline, design: .rounded).weight(.semibold))
                                 .foregroundStyle(.white)
+                                .accessibilityIdentifier(AccessibilityID.Results.shareBadgeButton)
                             if !subs.isPro {
                                 Text("PRO")
                                     .font(.system(.caption2, design: .rounded).weight(.heavy))
@@ -169,6 +170,7 @@ struct ResultsHomeView: View {
                     Text(overallLetter)
                         .font(.system(size: 44, weight: .bold, design: .rounded))
                         .foregroundStyle(gradeColor(overallLetter))
+                        .accessibilityIdentifier(AccessibilityID.Results.gradeLabel)
                 }
 
                 VStack(alignment: .leading, spacing: 6) {
@@ -205,6 +207,7 @@ struct ResultsHomeView: View {
                     roomGradeRow(room)
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier(AccessibilityID.Results.roomRow + ".\(room.displayName)")
             }
         }
     }

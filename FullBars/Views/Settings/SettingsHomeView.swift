@@ -74,13 +74,14 @@ struct SettingsHomeView: View {
                 Button {
                     presentingPaywall = true
                 } label: {
-                    Text("Upgrade to Pro")
+                    Text(String(localized: "settings.upgrade_to_pro"))
                         .font(.system(.subheadline, design: .rounded).weight(.bold))
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
                         .background(cyan)
                         .foregroundStyle(.black)
                         .cornerRadius(10)
+                        .accessibilityIdentifier(AccessibilityID.Settings.upgradeButton)
                 }
                 .padding(.top, 4)
             }
@@ -94,6 +95,7 @@ struct SettingsHomeView: View {
 
     private var homeCard: some View {
         Button { presentingHomeEditor = true } label: {
+            // a11y ID applied to the outer button below
             HStack {
                 Image(systemName: "house.fill").foregroundStyle(cyan).frame(width: 24)
                 VStack(alignment: .leading, spacing: 2) {
@@ -114,6 +116,7 @@ struct SettingsHomeView: View {
             .cornerRadius(12)
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier(AccessibilityID.Settings.editHomeButton)
     }
 
     // MARK: - ISP
@@ -144,6 +147,7 @@ struct SettingsHomeView: View {
             .cornerRadius(12)
         }
         .buttonStyle(.plain)
+        .accessibilityIdentifier(AccessibilityID.Settings.editISPButton)
     }
 
     // MARK: - Data sharing
@@ -169,6 +173,7 @@ struct SettingsHomeView: View {
             ))
             .tint(cyan)
             .labelsHidden()
+            .accessibilityIdentifier(AccessibilityID.Settings.dataSharingToggle)
         }
         .padding(16)
         .background(Color.white.opacity(0.05))
@@ -184,9 +189,10 @@ struct SettingsHomeView: View {
             } label: {
                 HStack {
                     Image(systemName: "arrow.counterclockwise.circle.fill").foregroundStyle(.orange).frame(width: 24)
-                    Text("Reset onboarding")
+                    Text(String(localized: "settings.reset_onboarding"))
                         .font(.system(.subheadline, design: .rounded).weight(.semibold))
                         .foregroundStyle(.white)
+                        .accessibilityIdentifier(AccessibilityID.Settings.resetOnboarding)
                     Spacer()
                     Image(systemName: "chevron.right").foregroundStyle(.secondary)
                 }

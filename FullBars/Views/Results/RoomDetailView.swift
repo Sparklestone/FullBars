@@ -78,6 +78,7 @@ struct RoomDetailView: View {
                     .frame(width: 96, height: 96)
                     .rotationEffect(.degrees(-90))
                 Text(room.gradeLetterRaw.isEmpty ? "–" : room.gradeLetterRaw)
+                    .accessibilityIdentifier(AccessibilityID.RoomDetail.gradeRing)
                     .font(.system(size: 38, weight: .bold, design: .rounded))
                     .foregroundStyle(gradeColor(room.gradeLetterRaw))
             }
@@ -193,8 +194,11 @@ struct RoomDetailView: View {
             VStack(spacing: 8) {
                 layerToggle(label: "Painted coverage", systemImage: "paintbrush.fill", isOn: $showPainted, tint: .gray)
                 layerToggle(label: "Signal heatmap", systemImage: "wifi", isOn: $showHeatmap, tint: cyan)
+                    .accessibilityIdentifier(AccessibilityID.RoomDetail.heatmapToggle)
                 layerToggle(label: "Dead zones", systemImage: "exclamationmark.triangle.fill", isOn: $showDeadZones, tint: .red)
+                    .accessibilityIdentifier(AccessibilityID.RoomDetail.deadZoneToggle)
                 layerToggle(label: "Devices", systemImage: "wifi.router.fill", isOn: $showDevices, tint: .purple)
+                    .accessibilityIdentifier(AccessibilityID.RoomDetail.devicesToggle)
             }
         }
         .padding(14)
