@@ -139,6 +139,23 @@ final class SpeedTestService: NSObject {
         }
     }
     
+    /// Quick download-only estimate (~2-3 seconds) for onboarding ISP pre-fill.
+    /// Returns estimated download speed in Mbps, or nil on failure.
+    func quickSpeedEstimate() async -> Double? {
+        do {
+            // Use a smaller 2 MB payload for a fast estimate
+            let downloadURL = URL(string: "https://speed.cloudflare.com/__down?bytes=2000000")!
+            let startTime = Date()
+            let (data, _) = try await session.data(from: downloadURL)
+            let elapsedSeconds = Date().timeIntervalSince(startTime)
+            guard elapsedSeconds > 0 else { return nil }
+            let megabits = Double(data.count) * 8 / 1_000_000
+            return megabits / elapsedSeconds
+        } catch {
+            return nil
+        }
+    }
+
     private func calculateJitter(_ latencies: [Double]) -> Double {
         guard latencies.count > 1 else { return 0 }
         let mean = latencies.reduce(0, +) / Double(latencies.count)

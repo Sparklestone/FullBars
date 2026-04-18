@@ -73,24 +73,24 @@ struct SettingsView: View {
                                 Divider().opacity(0.3)
 
                                 VStack(spacing: 12) {
-                                    Picker("Display Mode", selection: $viewModel.displayMode) {
-                                        ForEach(DisplayMode.allCases, id: \.self) { mode in
-                                            HStack {
-                                                Image(systemName: mode.icon)
-                                                Text(mode.label)
-                                            }
-                                            .tag(mode)
-                                        }
+                                    HStack {
+                                        Text("Technical Details")
+                                            .font(.subheadline)
+                                        Spacer()
+                                        Toggle("", isOn: Binding(
+                                            get: { viewModel.displayMode == .technical },
+                                            set: { viewModel.displayMode = $0 ? .technical : .basic }
+                                        ))
+                                        .tint(electricCyan)
                                     }
-                                    .pickerStyle(.segmented)
 
                                     HStack(spacing: 8) {
                                         Image(systemName: "info.circle")
                                             .font(.caption2)
                                             .foregroundStyle(.secondary)
-                                        Text(viewModel.displayMode == .basic
-                                            ? "Simplified view with friendly language and visual indicators."
-                                            : "Full technical details with charts, dBm values, and raw metrics."
+                                        Text(viewModel.displayMode == .technical
+                                            ? "Showing dBm values, charts, and raw metrics throughout the app."
+                                            : "Showing simplified grades and friendly language."
                                         )
                                         .font(.caption2)
                                         .foregroundStyle(.secondary)

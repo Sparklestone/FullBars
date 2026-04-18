@@ -8,6 +8,8 @@ enum DwellingType: String, CaseIterable, Codable {
     case apartment = "Apartment"
     case condo = "Condo"
     case townhouse = "Townhouse"
+    case rentalUnit = "Rental Unit"
+    case commercial = "Commercial Space"
     case other = "Other"
 
     var icon: String {
@@ -16,6 +18,8 @@ enum DwellingType: String, CaseIterable, Codable {
         case .apartment: return "building.2.fill"
         case .condo: return "building.fill"
         case .townhouse: return "house.and.flag.fill"
+        case .rentalUnit: return "key.fill"
+        case .commercial: return "storefront.fill"
         case .other: return "questionmark.square.fill"
         }
     }
@@ -85,9 +89,11 @@ final class UserProfile {
         set { defaults.set(newValue, forKey: "ispPromisedSpeed") }
     }
 
+    /// Data collection is now standard — always true going forward.
+    /// Property kept for backwards compatibility with existing installs.
     var dataCollectionOptIn: Bool {
-        get { defaults.bool(forKey: "dataCollectionOptIn") }
-        set { defaults.set(newValue, forKey: "dataCollectionOptIn") }
+        get { true }
+        set { defaults.set(true, forKey: "dataCollectionOptIn") }
     }
 
     var floorLabels: [String] {

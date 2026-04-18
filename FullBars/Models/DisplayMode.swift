@@ -8,8 +8,8 @@ enum DisplayMode: String, CaseIterable, Codable {
 
     var label: String {
         switch self {
-        case .basic: return "Basic"
-        case .technical: return "Technical"
+        case .basic: return "Off"
+        case .technical: return "On"
         }
     }
 

@@ -4,15 +4,17 @@ import StoreKit
 // MARK: - Product Identifiers
 
 enum ProProduct: String, CaseIterable {
-    case weekly  = "com.fullbars.pro.weekly"
-    case annual  = "com.fullbars.pro.annual"
+    case weekly   = "com.fullbars.pro.weekly"
+    case annual   = "com.fullbars.pro.annual"
     case lifetime = "com.fullbars.pro.lifetime"
+    case business = "com.fullbars.pro.business"
 
     var displayName: String {
         switch self {
         case .weekly:   return "Weekly"
         case .annual:   return "Annual"
         case .lifetime: return "Lifetime"
+        case .business: return "Business"
         }
     }
 }
@@ -137,7 +139,7 @@ final class SubscriptionManager {
     // MARK: - Free-Tier Limits
 
     /// Number of walkthrough rooms allowed before paywall
-    static let freeRoomLimit = 1
+    static let freeRoomLimit = 3
 
     /// Number of free speed tests per day
     static let freeSpeedTestsPerDay = 1

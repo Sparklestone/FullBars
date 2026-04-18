@@ -12,11 +12,14 @@ struct OnboardingView: View {
     @State private var numberOfPeople: Int = 2
     @State private var ispName: String = ""
     @State private var ispSpeed: Double = 100
-    @State private var dataOptIn: Bool = true  // locked on for now; private mode coming soon
+    @State private var dataOptIn: Bool = true
     @State private var subscription = SubscriptionManager.shared
+    @State private var selectedDetailLevel: DisplayMode = .basic
+    @State private var isDetectingSpeed = false
+    @State private var detectedSpeed: Double?
 
     private let electricCyan = FullBars.Design.Colors.accentCyan
-    private let totalSteps = 7 // welcome, dwelling, household, ISP, data opt-in, paywall, ready
+    private let totalSteps = 8 // welcome, detail level, dwelling, household, ISP, data acceptance, paywall, ready
 
     var body: some View {
         ZStack {
@@ -37,12 +40,13 @@ struct OnboardingView: View {
                 Group {
                     switch currentStep {
                     case 0: welcomeStep
-                    case 1: dwellingStep
-                    case 2: householdStep
-                    case 3: ispStep
-                    case 4: dataOptInStep
-                    case 5: paywallStep
-                    case 6: readyStep
+                    case 1: detailLevelStep
+                    case 2: dwellingStep
+                    case 3: householdStep
+                    case 4: ispStep
+                    case 5: dataAcceptanceStep
+                    case 6: paywallStep
+                    case 7: readyStep
                     default: EmptyView()
                     }
                 }
@@ -107,7 +111,71 @@ struct OnboardingView: View {
         }
     }
 
-    // MARK: - Step 1: Dwelling Type
+    // MARK: - Step 1: Detail Level
+
+    private var detailLevelStep: some View {
+        VStack(spacing: 24) {
+            stepHeader(
+                icon: "slider.horizontal.3",
+                title: "How much detail do you want?",
+                subtitle: "You can change this anytime in Settings."
+            )
+
+            VStack(spacing: 12) {
+                detailCard(
+                    mode: .basic,
+                    icon: "gauge.with.dots.needle.33percent",
+                    title: "Keep it simple",
+                    description: "Letter grades, friendly language, and clear recommendations.",
+                    selected: selectedDetailLevel == .basic
+                )
+                detailCard(
+                    mode: .technical,
+                    icon: "waveform.path.ecg",
+                    title: "Show me everything",
+                    description: "dBm values, latency charts, channel analysis, and raw metrics.",
+                    selected: selectedDetailLevel == .technical
+                )
+            }
+            .padding(.horizontal, 24)
+        }
+    }
+
+    private func detailCard(mode: DisplayMode, icon: String, title: String, description: String, selected: Bool) -> some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.2)) { selectedDetailLevel = mode }
+        } label: {
+            HStack(spacing: 14) {
+                Image(systemName: icon)
+                    .font(.system(size: 28))
+                    .foregroundStyle(selected ? electricCyan : .secondary)
+                    .frame(width: 36)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.system(.body, design: .rounded))
+                        .fontWeight(.semibold)
+                        .foregroundStyle(selected ? .white : .secondary)
+                    Text(description)
+                        .font(.system(.caption, design: .rounded))
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer()
+                Image(systemName: selected ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(selected ? electricCyan : .white.opacity(0.3))
+                    .font(.title3)
+            }
+            .padding(16)
+            .background(selected ? electricCyan.opacity(0.12) : Color.white.opacity(0.05))
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(selected ? electricCyan : Color.white.opacity(0.1), lineWidth: selected ? 2 : 1)
+            )
+            .cornerRadius(12)
+        }
+    }
+
+    // MARK: - Step 2: Dwelling Type
 
     private var dwellingStep: some View {
         VStack(spacing: 24) {
@@ -145,7 +213,7 @@ struct OnboardingView: View {
         }
     }
 
-    // MARK: - Step 2: Household Info
+    // MARK: - Step 3: Household Info
 
     private var householdStep: some View {
         VStack(spacing: 28) {
@@ -225,7 +293,7 @@ struct OnboardingView: View {
         .disabled(!enabled)
     }
 
-    // MARK: - Step 3: ISP Info
+    // MARK: - Step 4: ISP Info
 
     private var ispStep: some View {
         VStack(spacing: 24) {
@@ -275,7 +343,45 @@ struct OnboardingView: View {
                     }
                 }
 
-                Text("Don't know? Check your bill or ISP's website. You can always update this later in Settings.")
+                // Auto-detect button
+                if detectedSpeed == nil && !isDetectingSpeed {
+                    Button {
+                        Task { await autoDetectSpeed() }
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "bolt.fill")
+                                .font(.system(size: 14, weight: .semibold))
+                            Text("Auto-detect my speed")
+                                .font(.system(.subheadline, design: .rounded))
+                                .fontWeight(.semibold)
+                        }
+                        .foregroundStyle(electricCyan)
+                        .padding(.vertical, 10)
+                        .frame(maxWidth: .infinity)
+                        .background(electricCyan.opacity(0.12))
+                        .cornerRadius(10)
+                    }
+                } else if isDetectingSpeed {
+                    HStack(spacing: 10) {
+                        ProgressView()
+                            .tint(electricCyan)
+                        Text("Running quick speed test…")
+                            .font(.system(.caption, design: .rounded))
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(.vertical, 6)
+                } else if let detected = detectedSpeed {
+                    HStack(spacing: 8) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                        Text("Detected ~\(Int(detected)) Mbps — slider updated")
+                            .font(.system(.caption, design: .rounded))
+                            .foregroundStyle(.green.opacity(0.8))
+                    }
+                    .padding(.vertical, 6)
+                }
+
+                Text("Don't know? Tap auto-detect or check your bill. You can always update this later in Settings.")
                     .font(.system(.caption, design: .rounded))
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -284,93 +390,51 @@ struct OnboardingView: View {
         }
     }
 
-    // MARK: - Step 4: Data Collection Opt-In
+    // MARK: - Step 5: Data Acceptance
 
-    private var dataOptInStep: some View {
+    private var dataAcceptanceStep: some View {
         VStack(spacing: 24) {
             stepHeader(
                 icon: "chart.bar.fill",
-                title: "Help improve WiFi for everyone",
-                subtitle: "Share anonymous usage data to help us build insights about real-world WiFi performance."
+                title: "Help build better WiFi for everyone",
+                subtitle: "FullBars collects anonymous usage data to power community insights — like average speeds by ISP and coverage benchmarks."
             )
 
             VStack(spacing: 16) {
-                // What we collect
-                VStack(alignment: .leading, spacing: 12) {
-                    dataPointRow(icon: "checkmark.circle.fill", text: "Speed vs. ISP promised speed", color: .green)
-                    dataPointRow(icon: "checkmark.circle.fill", text: "Coverage quality (strong/moderate/weak %)", color: .green)
-                    dataPointRow(icon: "checkmark.circle.fill", text: "Device count and interference levels", color: .green)
-                    dataPointRow(icon: "checkmark.circle.fill", text: "Dwelling type and approximate size", color: .green)
+                // Community value
+                VStack(alignment: .leading, spacing: 14) {
+                    acceptanceRow(icon: "person.3.fill", text: "See how your WiFi compares to others in your area", color: electricCyan)
+                    acceptanceRow(icon: "chart.line.uptrend.xyaxis", text: "Help identify ISPs that underdeliver on promised speeds", color: electricCyan)
+                    acceptanceRow(icon: "lightbulb.fill", text: "Power smarter recommendations for everyone", color: electricCyan)
                 }
 
                 Divider().opacity(0.2)
 
-                // What we don't collect
-                VStack(alignment: .leading, spacing: 12) {
-                    dataPointRow(icon: "xmark.circle.fill", text: "Your name, email, or any personal info", color: .red)
-                    dataPointRow(icon: "xmark.circle.fill", text: "Your location or address", color: .red)
-                    dataPointRow(icon: "xmark.circle.fill", text: "Network names or passwords", color: .red)
+                // Privacy assurances
+                VStack(alignment: .leading, spacing: 14) {
+                    acceptanceRow(icon: "lock.shield.fill", text: "No personal info — ever. No name, email, or address.", color: .green)
+                    acceptanceRow(icon: "eye.slash.fill", text: "No network names or passwords leave your device.", color: .green)
+                    acceptanceRow(icon: "number", text: "Data is aggregated and never tied to you.", color: .green)
                 }
             }
             .padding(.horizontal, 24)
 
-            // Toggle
-            VStack(spacing: 12) {
-                Button(action: { withAnimation { dataOptIn = true } }) {
-                    HStack {
-                        Image(systemName: dataOptIn ? "checkmark.circle.fill" : "circle")
-                            .foregroundStyle(dataOptIn ? .green : .secondary)
-                        Text("Share data — use FullBars free")
-                            .font(.system(.subheadline, design: .rounded))
-                            .fontWeight(.semibold)
-                        Spacer()
-                        Text("Free")
-                            .font(.system(.caption, design: .rounded))
-                            .fontWeight(.bold)
-                            .foregroundStyle(.green)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 4)
-                            .background(.green.opacity(0.15))
-                            .cornerRadius(8)
-                    }
-                    .padding(14)
-                    .background(dataOptIn ? electricCyan.opacity(0.1) : Color.white.opacity(0.05))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(dataOptIn ? electricCyan : Color.white.opacity(0.1), lineWidth: dataOptIn ? 2 : 1)
-                    )
-                    .cornerRadius(12)
-                }
+            // Privacy Policy link
+            VStack(spacing: 8) {
+                Text("By continuing, you accept anonymous data collection.")
+                    .font(.system(.caption, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
 
-                HStack {
-                    Image(systemName: "circle")
-                        .foregroundStyle(.secondary.opacity(0.4))
-                    Text("Keep data private")
-                        .font(.system(.subheadline, design: .rounded))
-                        .foregroundStyle(.secondary.opacity(0.5))
-                    Spacer()
-                    Text("Coming soon")
-                        .font(.system(.caption, design: .rounded))
-                        .fontWeight(.bold)
-                        .foregroundStyle(.secondary)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
-                        .background(Color.white.opacity(0.08))
-                        .cornerRadius(8)
-                }
-                .padding(14)
-                .background(Color.white.opacity(0.03))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
-                )
-                .cornerRadius(12)
+                Link("Read our Privacy Policy", destination: URL(string: "https://fullbars.app/privacy")!)
+                    .font(.system(.caption, design: .rounded))
+                    .foregroundStyle(electricCyan)
             }
             .padding(.horizontal, 24)
         }
     }
 
-    private func dataPointRow(icon: String, text: String, color: Color) -> some View {
+    private func acceptanceRow(icon: String, text: String, color: Color) -> some View {
         HStack(spacing: 10) {
             Image(systemName: icon)
                 .font(.system(size: 14))
@@ -382,7 +446,7 @@ struct OnboardingView: View {
         }
     }
 
-    // MARK: - Step 5: Paywall
+    // MARK: - Step 6: Paywall
 
     private var paywallStep: some View {
         VStack(spacing: 16) {
@@ -405,7 +469,7 @@ struct OnboardingView: View {
         }
     }
 
-    // MARK: - Step 6: Ready
+    // MARK: - Step 7: Ready
 
     private var readyStep: some View {
         VStack(spacing: 24) {
@@ -431,8 +495,8 @@ struct OnboardingView: View {
                 if !ispName.isEmpty {
                     summaryRow("ISP", value: "\(ispName) — \(Int(ispSpeed)) Mbps")
                 }
-                summaryRow("Data sharing", value: dataOptIn ? "Opted in (Free)" : "Private")
-                summaryRow("Plan", value: subscription.isPro ? "FullBars Pro" : "Free (1 room included)")
+                summaryRow("Data", value: "Anonymous usage data collected")
+                summaryRow("Plan", value: subscription.isPro ? "FullBars Pro" : "Free (3 rooms included)")
             }
             .padding(16)
             .background(.ultraThinMaterial)
@@ -487,7 +551,7 @@ struct OnboardingView: View {
         VStack(spacing: 16) {
             // On the paywall step, the paywall itself has CTA buttons — so we show
             // a "Try it first" skip and a "Continue" if already Pro.
-            if currentStep == 5 {
+            if currentStep == 6 {
                 // Paywall step
                 if subscription.isPro {
                     Button(action: { advanceStep() }) {
@@ -502,7 +566,7 @@ struct OnboardingView: View {
                     }
                 }
                 Button(action: { advanceStep() }) {
-                    Text(subscription.isPro ? "" : "Try it free first — 1 room included")
+                    Text(subscription.isPro ? "" : "Try it free first — 3 rooms included")
                         .font(.system(.subheadline, design: .rounded))
                         .foregroundStyle(.secondary)
                 }
@@ -520,7 +584,7 @@ struct OnboardingView: View {
                 }
             }
 
-            if currentStep > 0 && currentStep < totalSteps - 1 && currentStep != 5 {
+            if currentStep > 0 && currentStep < totalSteps - 1 && currentStep != 6 {
                 Button(action: {
                     withAnimation(.easeInOut(duration: 0.3)) { currentStep -= 1 }
                 }) {
@@ -550,6 +614,24 @@ struct OnboardingView: View {
         }
     }
 
+    private func autoDetectSpeed() async {
+        isDetectingSpeed = true
+        let service = SpeedTestService()
+        if let speed = await service.quickSpeedEstimate() {
+            // Round to nearest 25 Mbps tier for slider alignment
+            let rounded = max(10, (speed / 25).rounded() * 25)
+            await MainActor.run {
+                detectedSpeed = speed
+                ispSpeed = min(1000, rounded)
+                isDetectingSpeed = false
+            }
+        } else {
+            await MainActor.run {
+                isDetectingSpeed = false
+            }
+        }
+    }
+
     private func skipToEnd() {
         // If user skips, use sane defaults so downstream math (speed deficit, etc.) doesn't break.
         if ispSpeed <= 0 { ispSpeed = 100 }
@@ -563,8 +645,10 @@ struct OnboardingView: View {
         profile.numberOfPeople = numberOfPeople
         profile.ispName = ispName
         profile.ispPromisedSpeed = ispSpeed
-        profile.dataCollectionOptIn = dataOptIn
+        profile.dataCollectionOptIn = true
         profile.hasCompletedSetup = true
+        // Persist display mode preference
+        UserDefaults.standard.set(selectedDetailLevel.rawValue, forKey: "displayMode")
 
         withAnimation(.easeOut(duration: 0.3)) {
             isComplete = true

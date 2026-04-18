@@ -117,6 +117,9 @@
 		AA11111111111111AABB000E /* FullBarsWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA11111111111111AABB0009 /* FullBarsWidget.swift */; };
 		AA11111111111111AABB000F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AA11111111111111AABB000C /* Assets.xcassets */; };
 		AA11111111111111AABB0013 /* FullBarsWidget.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = AA11111111111111AABB0001 /* FullBarsWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		CC11111111111111DD002001 /* FullAssessmentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC11111111111111DD001001 /* FullAssessmentView.swift */; };
+		CC11111111111111DD002002 /* ISPReportCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC11111111111111DD001002 /* ISPReportCardView.swift */; };
+		CC11111111111111DD002003 /* FixGuideView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC11111111111111DD001003 /* FixGuideView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -275,6 +278,9 @@
 		AA11111111111111AABB000A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		AA11111111111111AABB000B /* FullBarsWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = FullBarsWidget.entitlements; sourceTree = "<group>"; };
 		AA11111111111111AABB000C /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		CC11111111111111DD001001 /* FullAssessmentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullAssessmentView.swift; sourceTree = "<group>"; };
+		CC11111111111111DD001002 /* ISPReportCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ISPReportCardView.swift; sourceTree = "<group>"; };
+		CC11111111111111DD001003 /* FixGuideView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FixGuideView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -465,6 +471,7 @@
 			isa = PBXGroup;
 			children = (
 				8CD09AF6E5B599AAC10E6E59 /* WiFiReportCardView.swift */,
+				CC11111111111111DD001002 /* ISPReportCardView.swift */,
 			);
 			path = ReportCard;
 			sourceTree = "<group>";
@@ -598,6 +605,7 @@
 			isa = PBXGroup;
 			children = (
 				2F52BDA6D99420AB01B41D63 /* DiagnosticsView.swift */,
+				CC11111111111111DD001003 /* FixGuideView.swift */,
 			);
 			path = Diagnostics;
 			sourceTree = "<group>";
@@ -679,6 +687,7 @@
 				0C887922A616ECF5915D361E /* Comparison */,
 				507AC8C34E9BD68E5852D06E /* Components */,
 				D4A739D1B5E82BE266C9ADA8 /* Dashboard */,
+				CC11111111111111DD003001 /* Assessment */,
 				A8FD6DE825377FD53C3FCB75 /* Diagnostics */,
 				81383F98921D5FA6A71A7F5C /* Grading */,
 				9412AA9EF1D938A9FD66EE73 /* Heatmap */,
@@ -705,6 +714,14 @@
 				AA11111111111111AABB000A /* Info.plist */,
 			);
 			path = FullBarsWidget;
+			sourceTree = "<group>";
+		};
+		CC11111111111111DD003001 /* Assessment */ = {
+			isa = PBXGroup;
+			children = (
+				CC11111111111111DD001001 /* FullAssessmentView.swift */,
+			);
+			path = Assessment;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -889,6 +906,9 @@
 				F05F2068CDB993579B09349D /* DiagnosticIssue.swift in Sources */,
 				A36CE82A981E76E03E935721 /* DiagnosticsEngine.swift in Sources */,
 				20C220099630FCD193DD47CD /* DiagnosticsView.swift in Sources */,
+				CC11111111111111DD002003 /* FixGuideView.swift in Sources */,
+				CC11111111111111DD002002 /* ISPReportCardView.swift in Sources */,
+				CC11111111111111DD002001 /* FullAssessmentView.swift in Sources */,
 				7F64E1FD97DDC47412AAF4EA /* DiagnosticsViewModel.swift in Sources */,
 				E902FE760FF1060C3FB30A37 /* DisplayMode.swift in Sources */,
 				3950A4D9318365156DCBCDFD /* Extensions.swift in Sources */,

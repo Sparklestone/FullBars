@@ -9,6 +9,7 @@ struct WiFiReportCardView: View {
     let generatedDate: Date
 
     @State private var showShareSheet = false
+    @State private var showPDFShareSheet = false
     @Environment(\.displayMode) private var envDisplayMode
 
     private let electricCyan = FullBars.Design.Colors.accentCyan
@@ -32,7 +33,14 @@ struct WiFiReportCardView: View {
             .navigationTitle("WiFi Report Card")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(action: { showShareSheet = true }) {
+                    Menu {
+                        Button { showShareSheet = true } label: {
+                            Label("Share as Text", systemImage: "square.and.arrow.up")
+                        }
+                        Button { exportPDF() } label: {
+                            Label("Export as PDF", systemImage: "doc.fill")
+                        }
+                    } label: {
                         Image(systemName: "square.and.arrow.up")
                     }
                 }
@@ -232,6 +240,34 @@ struct WiFiReportCardView: View {
         .padding(.vertical, 10)
         .background(.ultraThinMaterial)
         .cornerRadius(10)
+    }
+
+    // MARK: - PDF Export
+
+    private func exportPDF() {
+        let renderer = ImageRenderer(
+            content: reportContent
+                .frame(width: 380)
+                .padding(20)
+                .background(Color(red: 0.05, green: 0.05, blue: 0.1))
+        )
+        renderer.scale = 2.0
+
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("WiFi_Report_Card.pdf")
+        renderer.render { size, context in
+            var box = CGRect(origin: .zero, size: size)
+            guard let pdf = CGContext(url as CFURL, mediaBox: &box, nil) else { return }
+            pdf.beginPDFPage(nil)
+            context(pdf)
+            pdf.endPDFPage()
+            pdf.closePDF()
+        }
+
+        let activityVC = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+        if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let root = scene.windows.first?.rootViewController {
+            root.present(activityVC, animated: true)
+        }
     }
 
     // MARK: - Text Report for Sharing

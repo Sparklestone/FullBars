@@ -240,9 +240,22 @@ struct GuidedWalkthroughView: View {
                         .foregroundStyle(.white.opacity(0.6))
                 }
             }
-            Text("Keep turning at a steady pace…")
-                .font(.system(.subheadline, design: .rounded))
-                .foregroundStyle(.white.opacity(0.6))
+            if spinProgress >= 0.53 {
+                Button(action: { finishSpin() }) {
+                    Text("Done — \(samplesThisRoom.count) samples collected")
+                        .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                        .foregroundStyle(primary)
+                }
+                .transition(.opacity)
+
+                Text("You can finish now or keep going for more accuracy")
+                    .font(.system(.caption, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.5))
+            } else {
+                Text("Keep turning at a steady pace…")
+                    .font(.system(.subheadline, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.6))
+            }
         }
     }
 

@@ -8,6 +8,7 @@ struct DiagnosticsView: View {
     @State private var showShareSheet = false
     @State private var showPaywall = false
     @State private var issueAnimation: [UUID: Bool] = [:]
+    @State private var selectedFixIssue: DiagnosticIssue?
     @State private var hasInitialized = false
     @State private var subscription = SubscriptionManager.shared
     @Environment(\.displayMode) private var displayMode
@@ -131,6 +132,9 @@ struct DiagnosticsView: View {
                 ShareSheet(text: viewModel.exportReport())
             }
             .sheet(isPresented: $showPaywall) { ProPaywallView() }
+            .sheet(item: $selectedFixIssue) { issue in
+                FixGuideView(issue: issue)
+            }
             .overlay {
                 if !subscription.isPro {
                     // Blur the content and show a soft upgrade prompt instead of blocking immediately
@@ -296,6 +300,25 @@ struct DiagnosticsView: View {
                 }
                 .padding(.leading, 32)
             }
+
+            // Fix This button
+            Button {
+                selectedFixIssue = issue
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "wrench.and.screwdriver.fill")
+                        .font(.caption2)
+                    Text("Fix This")
+                        .font(.system(.caption, design: .rounded))
+                        .fontWeight(.semibold)
+                }
+                .foregroundStyle(electricCyan)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 7)
+                .background(electricCyan.opacity(0.12))
+                .cornerRadius(8)
+            }
+            .padding(.leading, 32)
         }
         .padding(12)
         .background(.ultraThinMaterial)

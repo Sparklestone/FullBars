@@ -122,7 +122,7 @@ struct ProPaywallView: View {
 
             // Fallback if products haven't loaded from App Store yet
             if subscription.products.isEmpty {
-                fallbackPricingCard(title: "Weekly", price: "$4.99 / week", id: ProProduct.weekly.rawValue)
+                fallbackPricingCard(title: "Weekly", price: "$1.99 / week", id: ProProduct.weekly.rawValue)
                 fallbackPricingCard(title: "Annual", price: "$29.99 / year", id: ProProduct.annual.rawValue, badge: "7-Day Free Trial", highlight: true)
                 fallbackPricingCard(title: "Lifetime", price: "$49.99 one-time", id: ProProduct.lifetime.rawValue)
             }

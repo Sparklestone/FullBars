@@ -51,6 +51,22 @@ struct GradeReportView: View {
                             .foregroundStyle(.white)
                             .cornerRadius(12)
                         }
+
+                        Button(action: {
+                            exportPDF()
+                        }) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "doc.fill")
+                                Text("Export as PDF")
+                                    .font(.system(.subheadline, design: .rounded))
+                                    .fontWeight(.semibold)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(.ultraThinMaterial)
+                            .foregroundStyle(.white)
+                            .cornerRadius(12)
+                        }
                     }
                     .padding(.horizontal, 16)
                 }
@@ -209,6 +225,32 @@ struct GradeReportView: View {
 
     private func shareAsText() {
         showShareSheet = true
+    }
+
+    private func exportPDF() {
+        let renderer = ImageRenderer(
+            content: reportCard
+                .frame(width: 380)
+                .padding(20)
+                .background(Color(red: 0.05, green: 0.05, blue: 0.1))
+        )
+        renderer.scale = 2.0
+
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("Grade_Report.pdf")
+        renderer.render { size, context in
+            var box = CGRect(origin: .zero, size: size)
+            guard let pdf = CGContext(url as CFURL, mediaBox: &box, nil) else { return }
+            pdf.beginPDFPage(nil)
+            context(pdf)
+            pdf.endPDFPage()
+            pdf.closePDF()
+        }
+
+        let activityVC = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+        if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let root = scene.windows.first?.rootViewController {
+            root.present(activityVC, animated: true)
+        }
     }
 
     private func generateTextReport() -> String {

@@ -268,7 +268,7 @@ struct DashboardView: View {
                         .font(.system(.subheadline, design: .rounded))
                         .fontWeight(.semibold)
                         .foregroundStyle(.white)
-                    Text("1 room scan · 1 speed test/day · Signal monitor")
+                    Text("3 room scans · 1 speed test/day · Signal monitor")
                         .font(.system(.caption2, design: .rounded))
                         .foregroundStyle(.white.opacity(0.6))
                 }
@@ -294,22 +294,22 @@ struct DashboardView: View {
     // MARK: - First Scan Banner
 
     private var firstScanBanner: some View {
-        NavigationLink(destination: GuidedWalkthroughView()) {
+        NavigationLink(destination: FullAssessmentView()) {
             HStack(spacing: 14) {
                 ZStack {
                     Circle()
                         .fill(electricCyan.opacity(0.2))
                         .frame(width: 48, height: 48)
-                    Image(systemName: "figure.walk.motion")
+                    Image(systemName: "gauge.with.dots.needle.33percent")
                         .font(.system(size: 22, weight: .semibold))
                         .foregroundStyle(electricCyan)
                 }
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Start your Home Scan")
+                    Text("Grade Your WiFi")
                         .font(.system(.headline, design: .rounded))
                         .fontWeight(.bold)
                         .foregroundStyle(.white)
-                    Text("Walk room-by-room so we can show you real coverage across your whole home.")
+                    Text("Speed test + room-by-room scan. Takes about 5 minutes.")
                         .font(.system(.caption, design: .rounded))
                         .foregroundStyle(.white.opacity(0.7))
                         .multilineTextAlignment(.leading)
