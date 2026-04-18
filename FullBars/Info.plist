@@ -18,6 +18,17 @@
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>NSCameraUsageDescription</key>
+	<string>FullBars uses the camera for AR-based room scanning to map your Wi-Fi coverage.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>FullBars uses your location to identify your Wi-Fi network and provide accurate signal analysis.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>FullBars scans your local network to detect connected devices and measure Wi-Fi performance.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_tcp</string>
+		<string>_udp</string>
+	</array>
 	<key>UILaunchScreen</key>
 	<dict/>
 	<key>UIRequiredDeviceCapabilities</key>
