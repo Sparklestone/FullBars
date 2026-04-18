@@ -1,23 +1,23 @@
 import WidgetKit
 import SwiftUI
-import SwiftData
 
-// MARK: - Shared container
+// MARK: - Shared data bridge
+//
+// The main app writes grade info into the App Group UserDefaults after each
+// scan.  The widget reads it — no SwiftData sharing needed.
 
-/// Builds a read-only ModelContainer that points at the App Group store
-/// shared with the main app.  The widget never writes — it just reads the
-/// latest Room / HomeConfiguration rows.
-@MainActor
-func makeSharedContainer() -> ModelContainer? {
-    guard let url = FileManager.default
-        .containerURL(forSecurityApplicationGroupIdentifier: "group.com.fullbars.shared")?
-        .appending(path: "default.store") else { return nil }
+private let appGroup = "group.com.fullbars.shared"
 
-    let config = ModelConfiguration(url: url, allowsSave: false)
-    return try? ModelContainer(
-        for: HomeConfiguration.self, Room.self,
-        configurations: config
-    )
+private func readGradeFromDefaults() -> GradeEntry {
+    guard let defaults = UserDefaults(suiteName: appGroup) else {
+        return .placeholder
+    }
+    let letter    = defaults.string(forKey: "widgetGradeLetter") ?? "—"
+    let score     = defaults.integer(forKey: "widgetGradeScore")
+    let roomCount = defaults.integer(forKey: "widgetRoomCount")
+    let homeName  = defaults.string(forKey: "widgetHomeName") ?? "FullBars"
+    return GradeEntry(date: .now, letter: letter, score: score,
+                      roomCount: roomCount, homeName: homeName)
 }
 
 // MARK: - Timeline entry
@@ -28,57 +28,28 @@ struct GradeEntry: TimelineEntry {
     let score: Int           // 0-100
     let roomCount: Int
     let homeName: String
+
+    static let placeholder = GradeEntry(
+        date: .now, letter: "B", score: 82, roomCount: 4, homeName: "Home"
+    )
 }
 
 // MARK: - Timeline provider
 
 struct GradeProvider: TimelineProvider {
     func placeholder(in context: Context) -> GradeEntry {
-        GradeEntry(date: .now, letter: "B", score: 82, roomCount: 4, homeName: "Home")
+        .placeholder
     }
 
     func getSnapshot(in context: Context, completion: @escaping (GradeEntry) -> Void) {
-        completion(currentEntry())
+        completion(readGradeFromDefaults())
     }
 
     func getTimeline(in context: Context, completion: @escaping (Timeline<GradeEntry>) -> Void) {
-        let entry = currentEntry()
+        let entry = readGradeFromDefaults()
         // Refresh every 30 minutes — the grade only changes after a scan.
         let next = Calendar.current.date(byAdding: .minute, value: 30, to: entry.date)!
         completion(Timeline(entries: [entry], policy: .after(next)))
-    }
-
-    @MainActor
-    private func currentEntry() -> GradeEntry {
-        guard let container = makeSharedContainer() else {
-            return GradeEntry(date: .now, letter: "—", score: 0, roomCount: 0, homeName: "FullBars")
-        }
-        let ctx = container.mainContext
-        let homes = (try? ctx.fetch(FetchDescriptor<HomeConfiguration>())) ?? []
-        let rooms = (try? ctx.fetch(FetchDescriptor<Room>())) ?? []
-
-        // Pick the first home (or whichever is "active" — simplified here).
-        let home = homes.first
-        let homeRooms = rooms.filter { $0.homeId == home?.id }
-
-        guard !homeRooms.isEmpty else {
-            return GradeEntry(date: .now, letter: "—", score: 0, roomCount: 0,
-                              homeName: home?.name ?? "FullBars")
-        }
-
-        let avg = homeRooms.reduce(0.0) { $0 + $1.gradeScore } / Double(homeRooms.count)
-        let letter: String = {
-            switch avg {
-            case 90...:   return "A"
-            case 80..<90: return "B"
-            case 70..<80: return "C"
-            case 60..<70: return "D"
-            default:      return "F"
-            }
-        }()
-
-        return GradeEntry(date: .now, letter: letter, score: Int(avg),
-                          roomCount: homeRooms.count, homeName: home?.name ?? "Home")
     }
 }
 
@@ -166,10 +137,7 @@ struct FullBarsWidget: Widget {
 
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: GradeProvider()) { entry in
-            switch WidgetFamily.allCases.first {
-            default:
-                GradeSmallView(entry: entry)
-            }
+            GradeSmallView(entry: entry)
         }
         .configurationDisplayName("Wi-Fi Grade")
         .description("See your home's overall Wi-Fi grade at a glance.")
