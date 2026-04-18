@@ -24,6 +24,10 @@
 	<string>FullBars uses your location to identify your Wi-Fi network and provide accurate signal analysis.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>FullBars scans your local network to detect connected devices and measure Wi-Fi performance.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>FullBars uses motion data to track your movement between rooms during Wi-Fi scanning.</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>FullBars detects nearby Bluetooth devices that may cause Wi-Fi interference.</string>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_tcp</string>

@@ -38,6 +38,11 @@ struct OnboardingFlow: View {
     @State private var bluetoothGranted = false
     @State private var motionGranted = false
     @State private var locationManager = LocationPermissionHelper()
+    @State private var showPermissionAlert = false
+
+    // Area speed lookup
+    @State private var areaSpeedResult: AreaSpeedService.AreaSpeedResult?
+    @State private var isLookingUpAreaSpeed = false
 
     private let cyan = FullBars.Design.Colors.accentCyan
     private let bg = Color(red: 0.05, green: 0.05, blue: 0.10)
@@ -335,7 +340,7 @@ struct OnboardingFlow: View {
         VStack(spacing: 20) {
             header(icon: "speedometer",
                    title: "Your internet plan",
-                   subtitle: "Critical: we compare your measured speeds to what you're paying for.")
+                   subtitle: "We compare your measured speeds to what you're paying for — or to your area average.")
 
             VStack(spacing: 14) {
                 labeledField("Provider", placeholder: "Xfinity, Verizon Fios, Spectrum…", text: $ispName)
@@ -346,10 +351,79 @@ struct OnboardingFlow: View {
                 labeledField("ZIP code", placeholder: "94103", text: $zipCode, keyboard: .numberPad)
             }
 
-            Text("Don't know? Check your bill or ISP's website. You can change this later in Settings.")
-                .font(.system(.caption, design: .rounded))
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
+            // Area speed lookup result
+            if let area = areaSpeedResult {
+                VStack(spacing: 8) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "map.fill")
+                            .foregroundStyle(cyan)
+                        Text("Average in your area")
+                            .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                            .foregroundStyle(.white)
+                    }
+                    HStack(spacing: 24) {
+                        VStack(spacing: 2) {
+                            Text("\(Int(area.averageDownloadMbps))")
+                                .font(.system(size: 28, weight: .bold, design: .rounded))
+                                .foregroundStyle(cyan)
+                            Text("Mbps down")
+                                .font(.system(.caption2, design: .rounded))
+                                .foregroundStyle(.secondary)
+                        }
+                        VStack(spacing: 2) {
+                            Text("\(Int(area.averageUploadMbps))")
+                                .font(.system(size: 28, weight: .bold, design: .rounded))
+                                .foregroundStyle(cyan)
+                            Text("Mbps up")
+                                .font(.system(.caption2, design: .rounded))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    if (Double(ispDownloadText) ?? 0) == 0 {
+                        Text("Don't know your plan speed? We'll compare your results to this area average instead.")
+                            .font(.system(.caption, design: .rounded))
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                }
+                .padding(14)
+                .frame(maxWidth: .infinity)
+                .background(cyan.opacity(0.08))
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(cyan.opacity(0.2), lineWidth: 1))
+                .cornerRadius(12)
+            } else if isLookingUpAreaSpeed {
+                HStack(spacing: 8) {
+                    ProgressView().tint(cyan)
+                    Text("Looking up speeds in your area…")
+                        .font(.system(.caption, design: .rounded))
+                        .foregroundStyle(.secondary)
+                }
+                .padding(12)
+            } else {
+                Text("Don't know your speeds? Enter your ZIP code and we'll look up the area average.")
+                    .font(.system(.caption, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+        }
+        .onChange(of: zipCode) { _, newZip in
+            let trimmed = newZip.trimmingCharacters(in: .whitespaces)
+            if trimmed.count == 5, trimmed.allSatisfy(\.isNumber) {
+                lookupAreaSpeed(zip: trimmed)
+            } else {
+                areaSpeedResult = nil
+            }
+        }
+    }
+
+    private func lookupAreaSpeed(zip: String) {
+        isLookingUpAreaSpeed = true
+        Task {
+            let result = await AreaSpeedService.shared.lookup(zipCode: zip)
+            await MainActor.run {
+                areaSpeedResult = result
+                isLookingUpAreaSpeed = false
+            }
         }
     }
 
@@ -359,7 +433,7 @@ struct OnboardingFlow: View {
         VStack(spacing: 20) {
             header(icon: "lock.shield",
                    title: "Permissions we need",
-                   subtitle: "Tap each to grant. You can't scan rooms without these.")
+                   subtitle: "Tap each to grant. All four are required to continue.")
 
             VStack(spacing: 10) {
                 permissionRow(
@@ -390,7 +464,9 @@ struct OnboardingFlow: View {
                     subtitle: "Detect interference from nearby devices",
                     granted: bluetoothGranted
                 ) {
-                    bluetoothGranted = true // iOS asks on first CBCentralManager usage
+                    // CBCentralManager prompts on first init — mark as granted
+                    let _ = CBCentralManager()
+                    bluetoothGranted = true
                 }
 
                 permissionRow(
@@ -399,14 +475,40 @@ struct OnboardingFlow: View {
                     subtitle: "Detect walking vs. standing still",
                     granted: motionGranted
                 ) {
-                    // Touch the motion manager to trigger the iOS prompt; result
-                    // will show up when the user first scans. We mark as granted
-                    // optimistically — this is strictly a UX nudge.
                     let manager = CMMotionActivityManager()
                     let now = Date()
-                    manager.queryActivityStarting(from: now, to: now, to: .main) { _, _ in }
-                    motionGranted = true
+                    manager.queryActivityStarting(from: now, to: now, to: .main) { activities, error in
+                        DispatchQueue.main.async {
+                            motionGranted = (error == nil)
+                        }
+                    }
                 }
+            }
+
+            if !allPermissionsGranted {
+                HStack(spacing: 8) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.yellow)
+                    Text("Grant all permissions above to continue")
+                        .font(.system(.caption, design: .rounded))
+                        .foregroundStyle(.yellow)
+                }
+                .padding(12)
+                .frame(maxWidth: .infinity)
+                .background(Color.yellow.opacity(0.1))
+                .cornerRadius(10)
+            } else {
+                HStack(spacing: 8) {
+                    Image(systemName: "checkmark.seal.fill")
+                        .foregroundStyle(.green)
+                    Text("All permissions granted — you're good to go!")
+                        .font(.system(.caption, design: .rounded))
+                        .foregroundStyle(.green)
+                }
+                .padding(12)
+                .frame(maxWidth: .infinity)
+                .background(Color.green.opacity(0.1))
+                .cornerRadius(10)
             }
         }
     }
@@ -544,14 +646,17 @@ struct OnboardingFlow: View {
         }
     }
 
+    private var allPermissionsGranted: Bool {
+        cameraGranted && locationGranted && bluetoothGranted && motionGranted
+    }
+
     private var canAdvance: Bool {
         switch step {
         case .size:
             let n = Int(squareFootageText) ?? 0
             return n >= 100 && n <= 50000
-        case .isp:
-            // ISP is optional-ish — allow progression either way; validate if entered.
-            return true
+        case .permissions:
+            return allPermissionsGranted
         default:
             return true
         }
@@ -609,10 +714,22 @@ struct OnboardingFlow: View {
         profile.numberOfFloors = numberOfFloors
         profile.numberOfPeople = numberOfPeople
         profile.ispName = ispName
-        profile.ispPromisedSpeed = dl > 0 ? dl : 100
         profile.dataCollectionOptIn = dataCollectionOptIn
         profile.floorLabels = floorLabels
         profile.hasCompletedSetup = true
+
+        // If user entered their plan speed, use it. Otherwise fall back to
+        // area average so comparisons still work (e.g. "30% of area average").
+        if dl > 0 {
+            profile.ispPromisedSpeed = dl
+            profile.usingAreaAverage = false
+        } else if let area = areaSpeedResult {
+            profile.ispPromisedSpeed = area.averageDownloadMbps
+            profile.usingAreaAverage = true
+        } else {
+            profile.ispPromisedSpeed = 200 // National average fallback
+            profile.usingAreaAverage = true
+        }
 
         withAnimation(.easeOut(duration: 0.3)) {
             isComplete = true

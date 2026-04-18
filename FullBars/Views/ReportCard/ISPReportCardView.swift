@@ -165,12 +165,12 @@ struct ISPReportCardView: View {
                         .foregroundStyle(deliveryColor)
                 }
 
-                Text("ISP Delivery Score")
+                Text(profile.usingAreaAverage ? "vs. Area Average" : "ISP Delivery Score")
                     .font(.system(.caption, design: .rounded))
                     .fontWeight(.semibold)
                     .foregroundStyle(.white.opacity(0.6))
 
-                Text("\(deliveryPercent)% of promised speed delivered")
+                Text("\(deliveryPercent)% of \(profile.speedComparisonLabel) delivered")
                     .font(.system(.caption2, design: .rounded))
                     .foregroundStyle(.white.opacity(0.4))
             }
@@ -182,7 +182,7 @@ struct ISPReportCardView: View {
             VStack(spacing: 14) {
                 comparisonRow(
                     label: "Download Speed",
-                    promised: profile.ispPromisedSpeed > 0 ? "\(Int(profile.ispPromisedSpeed)) Mbps" : "—",
+                    promised: profile.ispPromisedSpeed > 0 ? "\(Int(profile.ispPromisedSpeed)) Mbps (\(profile.usingAreaAverage ? "area avg" : "plan"))" : "—",
                     actual: "\(Int(avgDownload)) Mbps",
                     isGood: avgDownload >= profile.ispPromisedSpeed * 0.8
                 )

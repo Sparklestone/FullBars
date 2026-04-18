@@ -117,6 +117,17 @@ final class UserProfile {
         set { defaults.set(newValue, forKey: "roomPresets") }
     }
 
+    /// Whether the ISP speed is the user's actual plan or an area average estimate.
+    var usingAreaAverage: Bool {
+        get { defaults.bool(forKey: "usingAreaAverage") }
+        set { defaults.set(newValue, forKey: "usingAreaAverage") }
+    }
+
+    /// The comparison label shown in the UI — either "promised speed" or "area average".
+    var speedComparisonLabel: String {
+        usingAreaAverage ? "area average" : "promised speed"
+    }
+
     var hasCompletedSetup: Bool {
         get { defaults.bool(forKey: "hasCompletedOnboarding") }
         set { defaults.set(newValue, forKey: "hasCompletedOnboarding") }
