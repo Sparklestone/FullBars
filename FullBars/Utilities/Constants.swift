@@ -65,8 +65,35 @@ struct FullBars {
             static let large: CGFloat = 24
             static let extraLarge: CGFloat = 32
 
+            /// Small pill / badge corners (8pt)
+            static let cornerRadiusSmall: CGFloat = 8
+            /// Default card and button corners (12pt)
             static let cornerRadius: CGFloat = 12
-            static let cornerRadiusLarge: CGFloat = 20
+            /// Large card / modal corners (14pt)
+            static let cornerRadiusMedium: CGFloat = 14
+            /// Full-width sheet / report card corners (16pt)
+            static let cornerRadiusLarge: CGFloat = 16
+            /// Top-level container corners (20pt)
+            static let cornerRadiusXL: CGFloat = 20
+
+            /// Minimum touch target size per Apple HIG (44pt)
+            static let minTouchTarget: CGFloat = 44
+        }
+
+        // MARK: Opacity Scale
+        struct Opacity {
+            /// Disabled / decorative (0.08)
+            static let faint: Double = 0.08
+            /// Borders and dividers (0.12)
+            static let border: Double = 0.12
+            /// Tertiary labels (0.5)
+            static let tertiary: Double = 0.5
+            /// Secondary labels (0.6)
+            static let secondary: Double = 0.6
+            /// Primary muted (0.7)
+            static let muted: Double = 0.7
+            /// Near-full (0.85)
+            static let strong: Double = 0.85
         }
 
         // MARK: Shadows & Effects

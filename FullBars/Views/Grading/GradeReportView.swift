@@ -33,7 +33,7 @@ struct GradeReportView: View {
                             .padding(.vertical, 14)
                             .background(electricCyan.opacity(0.2))
                             .foregroundStyle(electricCyan)
-                            .cornerRadius(12)
+                            .cornerRadius(FullBars.Design.Layout.cornerRadius)
                         }
 
                         Button(action: {
@@ -49,7 +49,7 @@ struct GradeReportView: View {
                             .padding(.vertical, 14)
                             .background(.ultraThinMaterial)
                             .foregroundStyle(.white)
-                            .cornerRadius(12)
+                            .cornerRadius(FullBars.Design.Layout.cornerRadius)
                         }
 
                         Button(action: {
@@ -65,7 +65,7 @@ struct GradeReportView: View {
                             .padding(.vertical, 14)
                             .background(.ultraThinMaterial)
                             .foregroundStyle(.white)
-                            .cornerRadius(12)
+                            .cornerRadius(FullBars.Design.Layout.cornerRadius)
                         }
                     }
                     .padding(.horizontal, 16)
@@ -159,10 +159,10 @@ struct GradeReportView: View {
 
                             GeometryReader { geo in
                                 ZStack(alignment: .leading) {
-                                    RoundedRectangle(cornerRadius: 3)
+                                    RoundedRectangle(cornerRadius: FullBars.Design.Layout.cornerRadiusSmall)
                                         .fill(Color.white.opacity(0.1))
                                         .frame(height: 6)
-                                    RoundedRectangle(cornerRadius: 3)
+                                    RoundedRectangle(cornerRadius: FullBars.Design.Layout.cornerRadiusSmall)
                                         .fill(cat.color)
                                         .frame(width: geo.size.width * cat.score / 100, height: 6)
                                 }
@@ -190,10 +190,10 @@ struct GradeReportView: View {
         }
         .padding(24)
         .background(
-            RoundedRectangle(cornerRadius: 20)
+            RoundedRectangle(cornerRadius: FullBars.Design.Layout.cornerRadiusXL)
                 .fill(Color(red: 0.09, green: 0.11, blue: 0.14))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 20)
+                    RoundedRectangle(cornerRadius: FullBars.Design.Layout.cornerRadiusXL)
                         .stroke(grade.grade.color.opacity(0.3), lineWidth: 1)
                 )
         )

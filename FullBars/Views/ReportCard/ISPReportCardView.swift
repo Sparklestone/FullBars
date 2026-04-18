@@ -77,7 +77,7 @@ struct ISPReportCardView: View {
                             .foregroundStyle(.black)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
-                            .background(RoundedRectangle(cornerRadius: 12).fill(primary))
+                            .background(RoundedRectangle(cornerRadius: FullBars.Design.Layout.cornerRadius).fill(primary))
                         }
 
                         Button {
@@ -92,7 +92,7 @@ struct ISPReportCardView: View {
                             .foregroundStyle(primary)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
-                            .background(RoundedRectangle(cornerRadius: 12).stroke(primary, lineWidth: 1.5))
+                            .background(RoundedRectangle(cornerRadius: FullBars.Design.Layout.cornerRadius).stroke(primary, lineWidth: 1.5))
                         }
                     }
                     .padding(.horizontal, 16)
@@ -106,6 +106,8 @@ struct ISPReportCardView: View {
                     Button { dismiss() } label: {
                         Image(systemName: "xmark.circle.fill")
                             .foregroundStyle(.white.opacity(0.5))
+                            .frame(minWidth: 44, minHeight: 44)
+                            .contentShape(Circle())
                     }
                 }
             }
@@ -218,9 +220,9 @@ struct ISPReportCardView: View {
             .background(Color(red: 0.06, green: 0.07, blue: 0.10))
         }
         .background(Color(red: 0.10, green: 0.12, blue: 0.16))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .clipShape(RoundedRectangle(cornerRadius: FullBars.Design.Layout.cornerRadiusLarge))
         .overlay(
-            RoundedRectangle(cornerRadius: 16)
+            RoundedRectangle(cornerRadius: FullBars.Design.Layout.cornerRadiusLarge)
                 .stroke(Color.white.opacity(0.08), lineWidth: 1)
         )
     }

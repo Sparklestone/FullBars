@@ -71,11 +71,11 @@ struct OnboardingView: View {
     private var progressBar: some View {
         GeometryReader { geo in
             ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 3)
+                RoundedRectangle(cornerRadius: FullBars.Design.Layout.cornerRadiusSmall)
                     .fill(Color.white.opacity(0.1))
                     .frame(height: 6)
 
-                RoundedRectangle(cornerRadius: 3)
+                RoundedRectangle(cornerRadius: FullBars.Design.Layout.cornerRadiusSmall)
                     .fill(electricCyan)
                     .frame(width: geo.size.width * CGFloat(currentStep) / CGFloat(totalSteps - 1), height: 6)
                     .animation(.easeInOut(duration: 0.3), value: currentStep)
@@ -168,10 +168,10 @@ struct OnboardingView: View {
             .padding(16)
             .background(selected ? electricCyan.opacity(0.12) : Color.white.opacity(0.05))
             .overlay(
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: FullBars.Design.Layout.cornerRadius)
                     .stroke(selected ? electricCyan : Color.white.opacity(0.1), lineWidth: selected ? 2 : 1)
             )
-            .cornerRadius(12)
+            .cornerRadius(FullBars.Design.Layout.cornerRadius)
         }
     }
 
@@ -206,10 +206,10 @@ struct OnboardingView: View {
             .padding(.vertical, 20)
             .background(selectedDwelling == type ? electricCyan.opacity(0.15) : Color.white.opacity(0.05))
             .overlay(
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: FullBars.Design.Layout.cornerRadius)
                     .stroke(selectedDwelling == type ? electricCyan : Color.white.opacity(0.1), lineWidth: selectedDwelling == type ? 2 : 1)
             )
-            .cornerRadius(12)
+            .cornerRadius(FullBars.Design.Layout.cornerRadius)
         }
     }
 
@@ -310,9 +310,9 @@ struct OnboardingView: View {
                         .font(.system(.body, design: .rounded))
                         .padding(14)
                         .background(Color.white.opacity(0.08))
-                        .cornerRadius(12)
+                        .cornerRadius(FullBars.Design.Layout.cornerRadius)
                         .overlay(
-                            RoundedRectangle(cornerRadius: 12)
+                            RoundedRectangle(cornerRadius: FullBars.Design.Layout.cornerRadius)
                                 .stroke(Color.white.opacity(0.15), lineWidth: 1)
                         )
                 }
@@ -359,7 +359,7 @@ struct OnboardingView: View {
                         .padding(.vertical, 10)
                         .frame(maxWidth: .infinity)
                         .background(electricCyan.opacity(0.12))
-                        .cornerRadius(10)
+                        .cornerRadius(FullBars.Design.Layout.cornerRadius)
                     }
                 } else if isDetectingSpeed {
                     HStack(spacing: 10) {
@@ -500,7 +500,7 @@ struct OnboardingView: View {
             }
             .padding(16)
             .background(.ultraThinMaterial)
-            .cornerRadius(12)
+            .cornerRadius(FullBars.Design.Layout.cornerRadius)
             .padding(.horizontal, 24)
 
             Text("Start by running a speed test or doing a walkthrough of your space.")

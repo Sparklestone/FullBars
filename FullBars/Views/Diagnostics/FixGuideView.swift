@@ -66,7 +66,7 @@ struct FixGuideView: View {
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 14)
                                 .background(
-                                    RoundedRectangle(cornerRadius: 12)
+                                    RoundedRectangle(cornerRadius: FullBars.Design.Layout.cornerRadius)
                                         .fill(allDone ? primary : Color.white.opacity(0.1))
                                 )
                         }
@@ -83,6 +83,8 @@ struct FixGuideView: View {
                     Button { dismiss() } label: {
                         Image(systemName: "xmark.circle.fill")
                             .foregroundStyle(.white.opacity(0.5))
+                            .frame(minWidth: 44, minHeight: 44)
+                            .contentShape(Circle())
                     }
                 }
             }
@@ -178,8 +180,8 @@ struct FixGuideView: View {
     // MARK: - Helpers
 
     private var cardBackground: some View {
-        RoundedRectangle(cornerRadius: 14)
+        RoundedRectangle(cornerRadius: FullBars.Design.Layout.cornerRadiusMedium)
             .fill(Color(red: 0.10, green: 0.12, blue: 0.16))
-            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.white.opacity(0.08), lineWidth: 1))
+            .overlay(RoundedRectangle(cornerRadius: FullBars.Design.Layout.cornerRadiusMedium).stroke(Color.white.opacity(0.08), lineWidth: 1))
     }
 }

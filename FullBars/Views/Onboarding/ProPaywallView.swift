@@ -28,6 +28,8 @@ struct ProPaywallView: View {
                                 Image(systemName: "xmark.circle.fill")
                                     .font(.title2)
                                     .foregroundStyle(.white.opacity(0.5))
+                                    .frame(minWidth: 44, minHeight: 44)
+                                    .contentShape(Circle())
                             }
                         }
                         .padding(.horizontal, 20)
@@ -94,9 +96,9 @@ struct ProPaywallView: View {
         }
         .padding(18)
         .background(
-            RoundedRectangle(cornerRadius: 14)
+            RoundedRectangle(cornerRadius: FullBars.Design.Layout.cornerRadiusMedium)
                 .fill(Color(red: 0.10, green: 0.12, blue: 0.16))
-                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.white.opacity(0.08)))
+                .overlay(RoundedRectangle(cornerRadius: FullBars.Design.Layout.cornerRadiusMedium).stroke(Color.white.opacity(0.08)))
         )
     }
 
@@ -162,9 +164,9 @@ struct ProPaywallView: View {
             }
             .padding(16)
             .background(
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: FullBars.Design.Layout.cornerRadius)
                     .fill(isSelected ? primary.opacity(0.12) : Color.white.opacity(0.04))
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(isSelected ? primary : Color.white.opacity(0.1), lineWidth: isSelected ? 2 : 1))
+                    .overlay(RoundedRectangle(cornerRadius: FullBars.Design.Layout.cornerRadius).stroke(isSelected ? primary : Color.white.opacity(0.1), lineWidth: isSelected ? 2 : 1))
             )
         }
     }
@@ -201,9 +203,9 @@ struct ProPaywallView: View {
             }
             .padding(16)
             .background(
-                RoundedRectangle(cornerRadius: 12)
+                RoundedRectangle(cornerRadius: FullBars.Design.Layout.cornerRadius)
                     .fill(isSelected ? primary.opacity(0.12) : Color.white.opacity(0.04))
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(isSelected ? primary : Color.white.opacity(0.1), lineWidth: isSelected ? 2 : 1))
+                    .overlay(RoundedRectangle(cornerRadius: FullBars.Design.Layout.cornerRadius).stroke(isSelected ? primary : Color.white.opacity(0.1), lineWidth: isSelected ? 2 : 1))
             )
         }
     }
@@ -235,9 +237,9 @@ struct ProPaywallView: View {
         }
         .padding(18)
         .background(
-            RoundedRectangle(cornerRadius: 14)
+            RoundedRectangle(cornerRadius: FullBars.Design.Layout.cornerRadiusMedium)
                 .fill(Color(red: 0.10, green: 0.12, blue: 0.16))
-                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.white.opacity(0.08)))
+                .overlay(RoundedRectangle(cornerRadius: FullBars.Design.Layout.cornerRadiusMedium).stroke(Color.white.opacity(0.08)))
         )
     }
 
@@ -279,7 +281,7 @@ struct ProPaywallView: View {
                     .foregroundStyle(.black)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
-                    .background(RoundedRectangle(cornerRadius: 14).fill(primary))
+                    .background(RoundedRectangle(cornerRadius: FullBars.Design.Layout.cornerRadiusMedium).fill(primary))
             }
             .disabled(subscription.purchaseInProgress)
 
