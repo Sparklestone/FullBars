@@ -386,7 +386,9 @@ struct GuidedWalkthroughView: View {
         viewModel.startMonitoring()
         withAnimation { step = .spinning }
         spinTimer?.invalidate()
-        spinTimer = Timer.scheduledTimer(withTimeInterval: sampleInterval, repeats: true) { _ in
+        spinTimer = Timer.scheduledTimer(withTimeInterval: sampleInterval, repeats: true) { [self] timer in
+            // Guard against firing after cleanup
+            guard spinTimer != nil else { timer.invalidate(); return }
             let p = HeatmapPoint(
                 signalStrength: viewModel.currentSignalStrength,
                 latency: viewModel.currentLatency,

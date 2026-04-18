@@ -268,28 +268,39 @@ struct ProPaywallView: View {
     // MARK: - CTA
 
     private var ctaButton: some View {
-        Button {
-            guard let product = subscription.products.first(where: { $0.id == selectedProductID }) else { return }
-            Task { await subscription.purchase(product) }
-        } label: {
-            Text(selectedProductID == ProProduct.annual.rawValue ? "Start Free Trial" : "Subscribe Now")
-                .font(.system(.headline, design: .rounded))
-                .fontWeight(.bold)
-                .foregroundStyle(.black)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(RoundedRectangle(cornerRadius: 14).fill(primary))
-        }
-        .disabled(subscription.purchaseInProgress)
+        VStack(spacing: 6) {
+            Button {
+                guard let product = subscription.products.first(where: { $0.id == selectedProductID }) else { return }
+                Task { await subscription.purchase(product) }
+            } label: {
+                Text(selectedProductID == ProProduct.annual.rawValue ? "Start Free Trial" : "Subscribe Now")
+                    .font(.system(.headline, design: .rounded))
+                    .fontWeight(.bold)
+                    .foregroundStyle(.black)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(RoundedRectangle(cornerRadius: 14).fill(primary))
+            }
+            .disabled(subscription.purchaseInProgress)
 
-        // Show error if any
-        .overlay(alignment: .bottom) {
+            // Auto-renewal disclosure (App Store Guideline 3.1.2)
+            if selectedProductID == ProProduct.annual.rawValue {
+                Text("7-day free trial, then $29.99/year. Auto-renews. Cancel anytime in Settings > Subscriptions.")
+                    .font(.system(.caption2, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.5))
+                    .multilineTextAlignment(.center)
+            } else if selectedProductID == ProProduct.weekly.rawValue {
+                Text("$1.99/week. Auto-renews. Cancel anytime in Settings > Subscriptions.")
+                    .font(.system(.caption2, design: .rounded))
+                    .foregroundStyle(.white.opacity(0.5))
+                    .multilineTextAlignment(.center)
+            }
+
+            // Show error if any
             if let err = subscription.errorMessage {
                 Text(err)
                     .font(.caption2)
                     .foregroundStyle(.red)
-                    .padding(.top, 4)
-                    .offset(y: 22)
             }
         }
     }

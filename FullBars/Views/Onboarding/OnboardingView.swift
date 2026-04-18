@@ -578,10 +578,11 @@ struct OnboardingView: View {
                         .fontWeight(.bold)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 16)
-                        .background(electricCyan)
+                        .background(isDetectingSpeed ? electricCyan.opacity(0.4) : electricCyan)
                         .foregroundStyle(.black)
                         .cornerRadius(14)
                 }
+                .disabled(isDetectingSpeed)
             }
 
             if currentStep > 0 && currentStep < totalSteps - 1 && currentStep != 6 {

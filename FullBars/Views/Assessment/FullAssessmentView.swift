@@ -10,8 +10,6 @@ enum AssessmentPhase: CaseIterable {
 struct FullAssessmentView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.displayMode) private var displayMode
-
     @State private var phase: AssessmentPhase = .intro
     @State private var speedService = SpeedTestService()
     @State private var speedResult: SpeedTestResult?

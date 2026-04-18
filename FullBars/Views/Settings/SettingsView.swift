@@ -269,7 +269,7 @@ struct SettingsView: View {
 
                                     Divider().opacity(0.3)
 
-                                    Link(destination: URL(string: "https://example.com/privacy")!) {
+                                    Link(destination: URL(string: "https://fullbars.app/privacy")!) {
                                         HStack {
                                             Text("Privacy Policy").font(.subheadline).fontWeight(.semibold)
                                             Spacer()

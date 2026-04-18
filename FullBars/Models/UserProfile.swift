@@ -89,11 +89,11 @@ final class UserProfile {
         set { defaults.set(newValue, forKey: "ispPromisedSpeed") }
     }
 
-    /// Data collection is now standard — always true going forward.
-    /// Property kept for backwards compatibility with existing installs.
+    /// Data collection accepted by continuing through onboarding.
+    /// Defaults to true for users who complete the data acceptance step.
     var dataCollectionOptIn: Bool {
-        get { true }
-        set { defaults.set(true, forKey: "dataCollectionOptIn") }
+        get { defaults.object(forKey: "dataCollectionOptIn") as? Bool ?? true }
+        set { defaults.set(newValue, forKey: "dataCollectionOptIn") }
     }
 
     var floorLabels: [String] {

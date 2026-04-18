@@ -69,10 +69,11 @@ final class SpeedTestService: NSObject {
         var failedPings = 0
         
         for target in pingTargets {
+            guard let url = URL(string: target) else { failedPings += pingCount / pingTargets.count; continue }
             for _ in 0..<(pingCount / pingTargets.count) {
                 let startTime = Date()
                 do {
-                    var request = URLRequest(url: URL(string: target)!)
+                    var request = URLRequest(url: url)
                     request.httpMethod = "HEAD"
                     request.timeoutInterval = 5.0
                     let _ = try await session.data(for: request)

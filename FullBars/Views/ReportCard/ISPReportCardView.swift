@@ -212,7 +212,7 @@ struct ISPReportCardView: View {
                 Spacer()
                 Text(Date.now.formatted(date: .abbreviated, time: .omitted))
                     .font(.system(.caption2, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.3))
+                    .foregroundStyle(.white.opacity(0.5))
             }
             .padding(14)
             .background(Color(red: 0.06, green: 0.07, blue: 0.10))
@@ -239,7 +239,7 @@ struct ISPReportCardView: View {
                 if promised != "—" {
                     Text("Promised: \(promised)")
                         .font(.system(.caption2, design: .rounded))
-                        .foregroundStyle(.white.opacity(0.3))
+                        .foregroundStyle(.white.opacity(0.5))
                 }
             }
         }
@@ -258,7 +258,6 @@ struct ISPReportCardView: View {
     }
 
     private func exportPDF() {
-        guard let image = renderCardAsImage(), let data = image.pngData() else { return }
         let renderer = ImageRenderer(content: reportCard.frame(width: 380).padding(20).background(FullBars.Design.Colors.primaryBackground))
         renderer.scale = 2.0
 
@@ -280,13 +279,4 @@ struct ISPReportCardView: View {
     }
 }
 
-// MARK: - ShareSheet
-
-private struct ShareSheet: UIViewControllerRepresentable {
-    let activityItems: [Any]
-
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
-    }
-    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
-}
+// Uses shared ShareSheet from Components/ShareSheet.swift
