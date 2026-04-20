@@ -82,9 +82,6 @@ struct HomeScanHomeView: View {
                     if home.hasMeshNetwork {
                         statPill(label: "Mesh", value: "\(home.meshNodeCount + 1)")
                     }
-                    if home.ispPromisedDownloadMbps > 0 {
-                        statPill(label: "ISP", value: "\(Int(home.ispPromisedDownloadMbps)) Mbps")
-                    }
                 }
 
                 if let label = floorSummary(home: home) {

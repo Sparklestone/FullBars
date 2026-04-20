@@ -39,7 +39,7 @@ final class Room {
     // Analysis cache — so we don't recompute every time the view opens
     var gradeScore: Double                // 0-100
     var gradeLetterRaw: String            // "A", "B", etc.
-    var deadZoneCount: Int
+    var deadZoneCount: Int                // DO NOT RENAME (migration safety) — displays as "weak spots" in UI
     var interferenceZoneCount: Int
     var recommendationCount: Int
 

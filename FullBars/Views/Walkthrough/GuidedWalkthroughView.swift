@@ -348,8 +348,7 @@ struct GuidedWalkthroughView: View {
             NavigationLink {
                 ScrollView {
                     WholeHomeCoverageView(
-                        points: samplesThisSession,
-                        ispPromisedSpeed: profile.ispPromisedSpeed
+                        points: samplesThisSession
                     )
                     .padding(16)
                 }

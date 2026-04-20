@@ -1,17 +1,17 @@
 import SwiftUI
 import SwiftData
 
-/// Interactive coverage planner showing dead zones, mesh placement recommendations,
+/// Interactive coverage planner showing weak spots, mesh placement recommendations,
 /// and interference areas overlaid on a 2D floor plan with edge indicators.
 struct CoveragePlannerView: View {
     @Query(sort: \HeatmapPoint.timestamp, order: .reverse) private var allPoints: [HeatmapPoint]
     @State private var analysis: CoverageAnalysisResult?
     @State private var selectedFloor: Int = 0
-    @State private var showDeadZones = true
+    @State private var showWeakSpots = true
     @State private var showMeshPlacements = true
     @State private var showInterference = true
     @State private var showRouter = true
-    @State private var selectedDeadZone: DeadZone?
+    @State private var selectedWeakSpot: WeakSpot?
     @State private var selectedMeshRec: MeshPlacementRecommendation?
     @State private var showPaywall = false
     @State private var subscription = SubscriptionManager.shared
@@ -44,9 +44,9 @@ struct CoveragePlannerView: View {
                     layerToggles
                         .padding(.horizontal, 16)
 
-                    // Dead zone detail cards
-                    if let analysis, showDeadZones {
-                        deadZoneCards(analysis.deadZones.filter { $0.floorIndex == selectedFloor })
+                    // Weak spot detail cards
+                    if let analysis, showWeakSpots {
+                        weakSpotCards(analysis.weakSpots.filter { $0.floorIndex == selectedFloor })
                     }
 
                     // Mesh placement cards
@@ -98,7 +98,7 @@ struct CoveragePlannerView: View {
                 .font(FullBars.Design.Typography.title)
                 .foregroundStyle(.white)
 
-            Text("Run a Home Scan first to map your WiFi coverage, then come back here to see dead zones, mesh placement recommendations, and interference areas.")
+            Text("Run a Home Scan first to map your WiFi coverage, then come back here to see weak spots, mesh placement recommendations, and interference areas.")
                 .font(FullBars.Design.Typography.body)
                 .foregroundStyle(.white.opacity(0.6))
                 .multilineTextAlignment(.center)
@@ -158,9 +158,9 @@ struct CoveragePlannerView: View {
             HStack(spacing: 0) {
                 statPill(
                     icon: "exclamationmark.triangle.fill",
-                    value: "\(analysis.deadZoneCount)",
-                    label: "Dead Zones",
-                    color: analysis.deadZoneCount > 0 ? FullBars.Design.Colors.signalPoor : .green
+                    value: "\(analysis.weakSpotCount)",
+                    label: "Weak Spots",
+                    color: analysis.weakSpotCount > 0 ? FullBars.Design.Colors.signalPoor : .green
                 )
                 Spacer()
                 statPill(
@@ -255,14 +255,14 @@ struct CoveragePlannerView: View {
                         .position(pos)
                 }
 
-                // Dead zone overlays
-                if showDeadZones, let analysis {
-                    ForEach(analysis.deadZones.filter { $0.floorIndex == selectedFloor }) { dz in
+                // Weak spot overlays
+                if showWeakSpots, let analysis {
+                    ForEach(analysis.weakSpots.filter { $0.floorIndex == selectedFloor }) { dz in
                         let pos = mapToView(x: dz.centerX, y: dz.centerZ, bounds: bounds, size: size)
                         let radiusPx = mapRadius(dz.radius, bounds: bounds, size: size)
 
-                        deadZoneOverlay(dz, at: pos, radius: radiusPx)
-                            .onTapGesture { selectedDeadZone = dz }
+                        weakSpotOverlay(dz, at: pos, radius: radiusPx)
+                            .onTapGesture { selectedWeakSpot = dz }
                     }
                 }
 
@@ -305,9 +305,9 @@ struct CoveragePlannerView: View {
         .aspectRatio(1, contentMode: .fit)
     }
 
-    // MARK: - Dead Zone Overlay
+    // MARK: - Weak Spot Overlay
 
-    private func deadZoneOverlay(_ dz: DeadZone, at position: CGPoint, radius: CGFloat) -> some View {
+    private func weakSpotOverlay(_ dz: WeakSpot, at position: CGPoint, radius: CGFloat) -> some View {
         ZStack {
             // Pulsing danger circle
             Circle()
@@ -489,7 +489,7 @@ struct CoveragePlannerView: View {
                 .foregroundStyle(.white.opacity(0.5))
 
             HStack(spacing: 8) {
-                layerToggle("Dead Zones", icon: "exclamationmark.triangle.fill", color: FullBars.Design.Colors.signalPoor, isOn: $showDeadZones)
+                layerToggle("Weak Spots", icon: "exclamationmark.triangle.fill", color: FullBars.Design.Colors.signalPoor, isOn: $showWeakSpots)
                 layerToggle("Mesh", icon: "wifi.router.fill", color: FullBars.Design.Colors.signalGood, isOn: $showMeshPlacements)
                 layerToggle("Interference", icon: "antenna.radiowaves.left.and.right", color: .purple, isOn: $showInterference)
                 layerToggle("Router", icon: "wifi.circle.fill", color: electricCyan, isOn: $showRouter)
@@ -519,16 +519,16 @@ struct CoveragePlannerView: View {
         }
     }
 
-    // MARK: - Dead Zone Cards
+    // MARK: - Weak Spot Cards
 
-    private func deadZoneCards(_ zones: [DeadZone]) -> some View {
+    private func weakSpotCards(_ zones: [WeakSpot]) -> some View {
         Group {
             if !zones.isEmpty {
                 VStack(alignment: .leading, spacing: 10) {
                     HStack {
                         Image(systemName: "exclamationmark.triangle.fill")
                             .foregroundStyle(FullBars.Design.Colors.signalPoor)
-                        Text("Dead Zones")
+                        Text("Weak Spots")
                             .font(.system(.headline, design: .rounded))
                             .foregroundStyle(.white)
                     }
@@ -547,7 +547,7 @@ struct CoveragePlannerView: View {
 
                             VStack(alignment: .leading, spacing: 3) {
                                 HStack {
-                                    Text(dz.roomName ?? "Dead Zone")
+                                    Text(dz.roomName ?? "Weak Spot")
                                         .font(.system(.subheadline, design: .rounded))
                                         .fontWeight(.semibold)
                                         .foregroundStyle(.white)

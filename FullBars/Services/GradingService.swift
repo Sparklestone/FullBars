@@ -62,7 +62,7 @@ final class GradingService {
     // MARK: - Category Calculations
 
     /// Signal Coverage (30%): Percentage of points with "good or better" signal,
-    /// with additional penalty for detected dead zones.
+    /// with additional penalty for detected weak spots.
     private static func calculateSignalCoverage(points: [HeatmapPoint]) -> Double {
         let goodThreshold = -65
         let fairThreshold = -75
@@ -73,12 +73,12 @@ final class GradingService {
         // Good points worth full marks, fair points worth half
         var score = (Double(goodCount) + Double(fairCount) * 0.5) / max(1, total) * 100
 
-        // Dead zone penalty: detect clusters of very weak signal and penalize
-        let deadZones = CoveragePlanningService.detectDeadZones(points: points)
-        let criticalCount = deadZones.filter { $0.severity == .critical }.count
-        let severeCount = deadZones.filter { $0.severity == .severe }.count
-        score -= Double(criticalCount) * 8  // -8 per critical dead zone
-        score -= Double(severeCount) * 4    // -4 per severe dead zone
+        // Weak spot penalty: detect clusters of very weak signal and penalize
+        let weakSpots = CoveragePlanningService.detectWeakSpots(points: points)
+        let criticalCount = weakSpots.filter { $0.severity == .critical }.count
+        let severeCount = weakSpots.filter { $0.severity == .severe }.count
+        score -= Double(criticalCount) * 8  // -8 per critical weak spot
+        score -= Double(severeCount) * 4    // -4 per severe weak spot
 
         return min(100, max(0, score))
     }

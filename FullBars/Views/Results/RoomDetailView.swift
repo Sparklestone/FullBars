@@ -19,7 +19,7 @@ struct RoomDetailView: View {
     }
 
     @State private var showHeatmap: Bool = true
-    @State private var showDeadZones: Bool = true
+    @State private var showWeakSpots: Bool = true
     @State private var showPainted: Bool = true
     @State private var showDevices: Bool = true
 
@@ -37,8 +37,13 @@ struct RoomDetailView: View {
     private var doorways: [Doorway] {
         allDoorways.filter { $0.roomId == room.id }
     }
-    private var deadZonePoints: [HeatmapPoint] {
+    private var weakSpotPoints: [HeatmapPoint] {
         points.filter { $0.signalStrength < -80 }
+    }
+
+    private var houseSignalRange: SignalRange {
+        let homePoints = allPoints.filter { $0.homeId == room.homeId }
+        return WholeHouseAnalysisService.computeSignalRange(points: homePoints)
     }
 
     // MARK: - Body
@@ -105,7 +110,7 @@ struct RoomDetailView: View {
         case "B": return "Good coverage with minor weak spots."
         case "C": return "Usable, but some trouble areas."
         case "D": return "Noticeable gaps. A mesh node could help."
-        default:  return "Significant dead zones. Consider repositioning your router or adding a mesh node."
+        default:  return "Significant weak spots. Consider repositioning your router or adding a mesh node."
         }
     }
 
@@ -125,10 +130,10 @@ struct RoomDetailView: View {
                            color: coverageColor(room.paintedCoverageFraction))
             }
             HStack(spacing: 12) {
-                metricTile(label: "Dead zones",
-                           value: "\(deadZonePoints.count)",
+                metricTile(label: "Weak spots",
+                           value: "\(weakSpotPoints.count)",
                            unit: "samples",
-                           color: deadZonePoints.isEmpty ? .green : .red)
+                           color: weakSpotPoints.isEmpty ? .green : .red)
                 metricTile(label: "BLE nearby",
                            value: "\(room.bleDeviceCount)",
                            unit: "devices",
@@ -168,10 +173,11 @@ struct RoomDetailView: View {
             RoomMapCanvas(
                 room: room,
                 points: showHeatmap ? points : [],
-                deadZonePoints: showDeadZones ? deadZonePoints : [],
+                weakSpotPoints: showWeakSpots ? weakSpotPoints : [],
                 devices: showDevices ? devices : [],
                 doorways: doorways,
-                showPainted: showPainted
+                showPainted: showPainted,
+                signalRange: houseSignalRange
             )
             .frame(height: 300)
             .background(Color.black.opacity(0.25))
@@ -195,8 +201,8 @@ struct RoomDetailView: View {
                 layerToggle(label: "Painted coverage", systemImage: "paintbrush.fill", isOn: $showPainted, tint: .gray)
                 layerToggle(label: "Signal heatmap", systemImage: "wifi", isOn: $showHeatmap, tint: cyan)
                     .accessibilityIdentifier(AccessibilityID.RoomDetail.heatmapToggle)
-                layerToggle(label: "Dead zones", systemImage: "exclamationmark.triangle.fill", isOn: $showDeadZones, tint: .red)
-                    .accessibilityIdentifier(AccessibilityID.RoomDetail.deadZoneToggle)
+                layerToggle(label: "Weak spots", systemImage: "exclamationmark.triangle.fill", isOn: $showWeakSpots, tint: .red)
+                    .accessibilityIdentifier(AccessibilityID.RoomDetail.weakSpotToggle)
                 layerToggle(label: "Devices", systemImage: "wifi.router.fill", isOn: $showDevices, tint: .purple)
                     .accessibilityIdentifier(AccessibilityID.RoomDetail.devicesToggle)
             }
@@ -325,10 +331,10 @@ struct RoomDetailView: View {
     private func buildRecommendations() -> [Recommendation] {
         var recs: [Recommendation] = []
 
-        if !deadZonePoints.isEmpty {
+        if !weakSpotPoints.isEmpty {
             recs.append(Recommendation(
                 title: "Add a mesh node",
-                detail: "Found \(deadZonePoints.count) dead-zone sample\(deadZonePoints.count == 1 ? "" : "s") (below -80 dBm). A mesh node near this room would restore coverage.",
+                detail: "Found \(weakSpotPoints.count) weak spot sample\(weakSpotPoints.count == 1 ? "" : "s") (below -80 dBm). A mesh node near this room would restore coverage.",
                 icon: "dot.radiowaves.left.and.right",
                 color: .purple
             ))
@@ -407,13 +413,14 @@ struct RoomDetailView: View {
 
 /// Renders the room's polygon, painted cells, heatmap points, devices, doorways
 /// into a single Canvas, auto-scaled to fit.
-private struct RoomMapCanvas: View {
+struct RoomMapCanvas: View {
     let room: Room
     let points: [HeatmapPoint]
-    let deadZonePoints: [HeatmapPoint]
+    let weakSpotPoints: [HeatmapPoint]
     let devices: [DevicePlacement]
     let doorways: [Doorway]
     let showPainted: Bool
+    var signalRange: SignalRange? = nil
 
     var body: some View {
         GeometryReader { proxy in
@@ -485,9 +492,9 @@ private struct RoomMapCanvas: View {
                     }
                 }
 
-                // Layer 4: dead zone markers (on top)
+                // Layer 4: weak spot markers (on top)
                 Canvas { ctx, _ in
-                    for p in deadZonePoints {
+                    for p in weakSpotPoints {
                         let c = project(p.x, p.z)
                         let rect = CGRect(x: c.x - 5, y: c.y - 5, width: 10, height: 10)
                         ctx.fill(Path(ellipseIn: rect), with: .color(.red))
@@ -560,6 +567,10 @@ private struct RoomMapCanvas: View {
     }
 
     private func signalColor(_ dBm: Int) -> Color {
+        if let range = signalRange {
+            return SignalRange.relativeColor(for: dBm, range: range)
+        }
+        // Fallback to absolute thresholds
         switch dBm {
         case -50...0:    return .green
         case -60..<(-50): return .mint

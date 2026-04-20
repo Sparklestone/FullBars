@@ -297,7 +297,7 @@ struct OnboardingView: View {
 
     private var ispStep: some View {
         VStack(spacing: 24) {
-            stepHeader(icon: "speedometer", title: "Your internet plan", subtitle: "We'll compare your actual speeds against what you're paying for.")
+            stepHeader(icon: "speedometer", title: "Your internet plan", subtitle: "We'll compare your actual speeds to area averages.")
 
             VStack(spacing: 20) {
                 // ISP Name
@@ -317,71 +317,7 @@ struct OnboardingView: View {
                         )
                 }
 
-                // Promised Speed
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack {
-                        Text("Promised download speed")
-                            .font(.system(.subheadline, design: .rounded))
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                        Text("\(Int(ispSpeed)) Mbps")
-                            .font(.system(.headline, design: .rounded))
-                            .foregroundStyle(electricCyan)
-                    }
-
-                    Slider(value: $ispSpeed, in: 10...1000, step: 10)
-                        .tint(electricCyan)
-
-                    HStack {
-                        Text("10 Mbps")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                        Spacer()
-                        Text("1 Gbps")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
-                    }
-                }
-
-                // Auto-detect button
-                if detectedSpeed == nil && !isDetectingSpeed {
-                    Button {
-                        Task { await autoDetectSpeed() }
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "bolt.fill")
-                                .font(.system(size: 14, weight: .semibold))
-                            Text("Auto-detect my speed")
-                                .font(.system(.subheadline, design: .rounded))
-                                .fontWeight(.semibold)
-                        }
-                        .foregroundStyle(electricCyan)
-                        .padding(.vertical, 10)
-                        .frame(maxWidth: .infinity)
-                        .background(electricCyan.opacity(0.12))
-                        .cornerRadius(FullBars.Design.Layout.cornerRadius)
-                    }
-                } else if isDetectingSpeed {
-                    HStack(spacing: 10) {
-                        ProgressView()
-                            .tint(electricCyan)
-                        Text("Running quick speed test…")
-                            .font(.system(.caption, design: .rounded))
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(.vertical, 6)
-                } else if let detected = detectedSpeed {
-                    HStack(spacing: 8) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(.green)
-                        Text("Detected ~\(Int(detected)) Mbps — slider updated")
-                            .font(.system(.caption, design: .rounded))
-                            .foregroundStyle(.green.opacity(0.8))
-                    }
-                    .padding(.vertical, 6)
-                }
-
-                Text("Don't know? Tap auto-detect or check your bill. You can always update this later in Settings.")
+                Text("Optional. Just helps us contextualize your speeds.")
                     .font(.system(.caption, design: .rounded))
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -645,7 +581,7 @@ struct OnboardingView: View {
         profile.numberOfFloors = numberOfFloors
         profile.numberOfPeople = numberOfPeople
         profile.ispName = ispName
-        profile.ispPromisedSpeed = ispSpeed
+        profile.ispPromisedSpeed = 0
         profile.dataCollectionOptIn = true
         profile.hasCompletedSetup = true
         // Persist display mode preference

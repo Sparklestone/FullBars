@@ -1,9 +1,9 @@
 import SwiftUI
 import SwiftData
 
-/// The room scan walkthrough UI. Drives a `RoomScanCoordinator` through its
-/// phases (setup → speed test → walk → review → save) with a top-down paint-
-/// the-floor canvas and the Corner / Entry / Device / Room-Complete buttons.
+/// The room scan walkthrough UI. Drives a `RoomScanCoordinator` through a
+/// 5-step guided flow: (1) corners → (2) entries → (3) devices → (4) paint
+/// floor → (5) Find My-style signal guidance + speed test → review → save.
 struct RoomScanView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
@@ -15,7 +15,7 @@ struct RoomScanView: View {
     // Pre-scan setup state
     @State private var selectedRoomType: RoomType = .livingRoom
     @State private var customName: String = ""
-    @State private var selectedFloorIndex: Int = 0
+    @AppStorage("lastUsedFloorIndex") private var selectedFloorIndex: Int = 0
 
     // Doorway connection sheet state
     @State private var editingDoorwayId: UUID?
@@ -36,12 +36,18 @@ struct RoomScanView: View {
                 switch coordinator.phase {
                 case .notStarted:
                     setupScreen
+                case .markingCorners:
+                    cornersScreen
+                case .markingEntries:
+                    entriesScreen
+                case .markingDevices:
+                    devicesScreen
+                case .paintingFloor:
+                    paintFloorScreen
+                case .guidingToSpeedTest:
+                    signalGuidanceScreen
                 case .runningSpeedTest:
                     speedTestScreen
-                case .waitingToStartWalk:
-                    walkIntroScreen
-                case .walking:
-                    walkScreen
                 case .reviewingBeforeSave:
                     reviewScreen
                 case .saved:
@@ -52,6 +58,12 @@ struct RoomScanView: View {
             }
         }
         .preferredColorScheme(.dark)
+        .onAppear {
+            // Clamp persisted floor index to valid range
+            if let home, selectedFloorIndex >= home.numberOfFloors {
+                selectedFloorIndex = 0
+            }
+        }
         .sheet(item: doorwayEditorBinding) { wrapper in
             DoorwayConnectionSheet(
                 coordinator: coordinator,
@@ -89,12 +101,28 @@ struct RoomScanView: View {
                     .font(.system(.headline, design: .rounded).weight(.bold))
                     .foregroundStyle(.white)
                 Spacer()
-                Color.clear.frame(width: 60)
+                Color.clear.frame(width: 60, height: 1)
             }
+            .fixedSize(horizontal: false, vertical: true)
             .padding()
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 22) {
+                    if let home, home.numberOfFloors > 1 {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Floor")
+                                .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                                .foregroundStyle(.white)
+                            Picker("Floor", selection: $selectedFloorIndex) {
+                                ForEach(0..<home.numberOfFloors, id: \.self) { i in
+                                    Text(home.floorLabels.indices.contains(i) ? home.floorLabels[i] : "Floor \(i+1)")
+                                        .tag(i)
+                                }
+                            }
+                            .pickerStyle(.segmented)
+                        }
+                    }
+
                     VStack(alignment: .leading, spacing: 10) {
                         Text("Room type")
                             .font(.system(.subheadline, design: .rounded).weight(.semibold))
@@ -139,21 +167,6 @@ struct RoomScanView: View {
                             .cornerRadius(10)
                     }
 
-                    if let home, home.numberOfFloors > 1 {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Floor")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                            Picker("Floor", selection: $selectedFloorIndex) {
-                                ForEach(0..<home.numberOfFloors, id: \.self) { i in
-                                    Text(home.floorLabels.indices.contains(i) ? home.floorLabels[i] : "Floor \(i+1)")
-                                        .tag(i)
-                                }
-                            }
-                            .pickerStyle(.segmented)
-                        }
-                    }
-
                     instructionsBlock
                 }
                 .padding(.horizontal, 20)
@@ -170,10 +183,11 @@ struct RoomScanView: View {
             Text("How it works")
                 .font(.system(.subheadline, design: .rounded).weight(.semibold))
                 .foregroundStyle(.white)
-            instructionRow(num: 1, text: "Stand still for a 15-second speed test.")
-            instructionRow(num: 2, text: "Walk the room holding your phone out. Stop at each corner and tap Corner.")
-            instructionRow(num: 3, text: "Tap Entry at every doorway. Tap Device wherever your router or mesh node sits.")
-            instructionRow(num: 4, text: "Walk the floor to paint it in. Tap Room Complete when you're done.")
+            instructionRow(num: 1, text: "Walk to each corner and tap Add Corner.")
+            instructionRow(num: 2, text: "Walk to each entry/exit and tap Add Entry.")
+            instructionRow(num: 3, text: "Walk to each device (router, mesh node) and tap Add Device.")
+            instructionRow(num: 4, text: "Walk the floor to paint coverage.")
+            instructionRow(num: 5, text: "Follow the signal finder to the best spot for a speed test.")
         }
         .padding(14)
         .background(Color.white.opacity(0.04))
@@ -215,154 +229,56 @@ struct RoomScanView: View {
         }
     }
 
-    // MARK: - Speed test
+    // MARK: - Step indicator
 
-    private var speedTestScreen: some View {
-        VStack(spacing: 24) {
-            Spacer()
-            ZStack {
+    private func stepIndicator(step: Int, title: String) -> some View {
+        HStack(spacing: 12) {
+            ForEach(1...5, id: \.self) { i in
                 Circle()
-                    .stroke(Color.white.opacity(0.08), lineWidth: 10)
-                    .frame(width: 170, height: 170)
-                Image(systemName: "speedometer")
-                    .font(.system(size: 60))
-                    .foregroundStyle(cyan)
+                    .fill(i == step ? cyan : (i < step ? Color.green : Color.white.opacity(0.15)))
+                    .frame(width: 8, height: 8)
             }
-
-            Text("Running speed test")
-                .font(.system(.title3, design: .rounded).weight(.bold))
-                .foregroundStyle(.white)
-            Text("Stand still and hold your phone steady. This takes about 15 seconds.")
-                .font(.system(.subheadline, design: .rounded))
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 40)
-
-            ProgressView()
-                .progressViewStyle(.linear)
-                .tint(cyan)
-                .padding(.horizontal, 60)
             Spacer()
+            Text("Step \(step) of 5")
+                .font(.system(.caption2, design: .rounded))
+                .foregroundStyle(.secondary)
         }
     }
 
-    // MARK: - Walk intro
+    private func stepHeader(step: Int, title: String, subtitle: String) -> some View {
+        VStack(spacing: 0) {
+            HStack {
+                Button { coordinator.goBackOneStep(); if coordinator.phase == .notStarted { dismiss() } } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left")
+                        Text("Back")
+                    }
+                    .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Button { coordinator.cancel(); dismiss() } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                        .font(.title3)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
 
-    private var walkIntroScreen: some View {
-        VStack(spacing: 20) {
-            Spacer()
-            VStack(spacing: 8) {
-                Image(systemName: "checkmark.circle.fill")
-                    .font(.system(size: 56))
-                    .foregroundStyle(.green)
-                Text("Speed test complete")
+            stepIndicator(step: step, title: title)
+                .padding(.horizontal, 16)
+                .padding(.top, 10)
+
+            VStack(spacing: 4) {
+                Text(title)
                     .font(.system(.title3, design: .rounded).weight(.bold))
                     .foregroundStyle(.white)
-            }
-
-            VStack(spacing: 10) {
-                speedStat("Download", "\(Int(coordinator.downloadMbps)) Mbps")
-                speedStat("Upload", "\(Int(coordinator.uploadMbps)) Mbps")
-                speedStat("Ping", "\(Int(coordinator.pingMs)) ms")
-            }
-            .padding(16)
-            .background(Color.white.opacity(0.05))
-            .cornerRadius(12)
-            .padding(.horizontal, 40)
-
-            Text("Now hold your phone steady and walk the perimeter of the room. Tap Corner at each corner.")
-                .font(.system(.subheadline, design: .rounded))
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .padding(.horizontal, 30)
-
-            Spacer()
-
-            Button { coordinator.beginWalk() } label: {
-                Label("Start walking", systemImage: "figure.walk")
-                    .font(.system(.headline, design: .rounded).weight(.bold))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(cyan)
-                    .foregroundStyle(.black)
-                    .cornerRadius(14)
-            }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 24)
-        }
-    }
-
-    private func speedStat(_ label: String, _ value: String) -> some View {
-        HStack {
-            Text(label)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Spacer()
-            Text(value)
-                .font(.system(.headline, design: .rounded).weight(.bold))
-                .foregroundStyle(cyan)
-        }
-    }
-
-    // MARK: - Walk
-
-    private var walkScreen: some View {
-        VStack(spacing: 0) {
-            walkTopBar
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
-
-            RoomCanvasView(coordinator: coordinator)
-                .padding(.horizontal, 12)
-                .padding(.top, 8)
-
-            walkBottomBar
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
-        }
-    }
-
-    private var walkTopBar: some View {
-        HStack(spacing: 8) {
-            Label("\(coordinator.corners.count)", systemImage: "square.on.square")
-                .font(.caption2)
-                .foregroundStyle(.white)
-                .padding(.vertical, 6).padding(.horizontal, 10)
-                .background(Color.white.opacity(0.07))
-                .cornerRadius(8)
-
-            Label("\(Int(coordinator.paintedCoverageFraction * 100))%", systemImage: "paintbrush.fill")
-                .font(.caption2)
-                .foregroundStyle(coverageColor)
-                .padding(.vertical, 6).padding(.horizontal, 10)
-                .background(coverageColor.opacity(0.12))
-                .cornerRadius(8)
-
-            Label(signalLabel, systemImage: "wifi")
-                .font(.caption2)
-                .foregroundStyle(signalColor)
-                .padding(.vertical, 6).padding(.horizontal, 10)
-                .background(signalColor.opacity(0.12))
-                .cornerRadius(8)
-
-            Spacer()
-
-            Button {
-                coordinator.cancel()
-                dismiss()
-            } label: {
-                Image(systemName: "xmark.circle.fill")
+                Text(subtitle)
+                    .font(.system(.caption, design: .rounded))
                     .foregroundStyle(.secondary)
-                    .font(.title3)
+                    .multilineTextAlignment(.center)
             }
-        }
-    }
-
-    private var coverageColor: Color {
-        switch coordinator.paintedCoverageFraction {
-        case 0.30...: return .green
-        case 0.15...: return .yellow
-        default:      return .orange
+            .padding(.top, 10)
         }
     }
 
@@ -379,57 +295,382 @@ struct RoomScanView: View {
         return s == 0 ? "—" : "\(s) dBm"
     }
 
-    private var walkBottomBar: some View {
-        VStack(spacing: 12) {
-            HStack(spacing: 10) {
-                actionButton(title: "Corner", system: "square.on.square", color: cyan) {
-                    coordinator.markCorner()
+    private var coverageColor: Color {
+        switch coordinator.paintedCoverageFraction {
+        case 0.30...: return .green
+        case 0.15...: return .yellow
+        default:      return .orange
+        }
+    }
+
+    // MARK: - Step 1: Corners
+
+    private var cornersScreen: some View {
+        VStack(spacing: 0) {
+            stepHeader(
+                step: 1,
+                title: "Mark corners",
+                subtitle: "Walk to each corner of the room and tap Add Corner."
+            )
+
+            RoomCanvasView(coordinator: coordinator)
+                .padding(.horizontal, 12)
+                .padding(.top, 8)
+
+            // Live counter
+            HStack {
+                Label("\(coordinator.corners.count) corners", systemImage: "square.on.square")
+                    .font(.system(.caption, design: .rounded).weight(.semibold))
+                    .foregroundStyle(cyan)
+                Spacer()
+                Label(signalLabel, systemImage: "wifi")
+                    .font(.caption2)
+                    .foregroundStyle(signalColor)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+
+            Spacer()
+
+            VStack(spacing: 10) {
+                Button { coordinator.markCorner() } label: {
+                    Label("Add corner", systemImage: "plus.square.on.square")
+                        .font(.system(.headline, design: .rounded).weight(.bold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(cyan)
+                        .foregroundStyle(.black)
+                        .cornerRadius(12)
                 }
-                actionButton(title: "Entry", system: "door.left.hand.open", color: .orange) {
+
+                Button { coordinator.finishCorners() } label: {
+                    Text("Done with corners")
+                        .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(coordinator.corners.count >= 3 ? Color.green : Color.white.opacity(0.08))
+                        .foregroundStyle(coordinator.corners.count >= 3 ? .black : .secondary)
+                        .cornerRadius(12)
+                }
+                .disabled(coordinator.corners.count < 3)
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 24)
+        }
+    }
+
+    // MARK: - Step 2: Entries / Exits
+
+    private var entriesScreen: some View {
+        VStack(spacing: 0) {
+            stepHeader(
+                step: 2,
+                title: "Mark entries & exits",
+                subtitle: "Walk to each doorway and tap Add Entry/Exit."
+            )
+
+            RoomCanvasView(coordinator: coordinator)
+                .padding(.horizontal, 12)
+                .padding(.top, 8)
+
+            HStack {
+                Label("\(coordinator.doorways.count) entries", systemImage: "door.left.hand.open")
+                    .font(.system(.caption, design: .rounded).weight(.semibold))
+                    .foregroundStyle(.orange)
+                Spacer()
+                Label(signalLabel, systemImage: "wifi")
+                    .font(.caption2)
+                    .foregroundStyle(signalColor)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+
+            Spacer()
+
+            VStack(spacing: 10) {
+                Button {
                     if let id = coordinator.markDoorway() {
                         editingDoorwayId = id
                     }
+                } label: {
+                    Label("Add entry / exit", systemImage: "door.left.hand.open")
+                        .font(.system(.headline, design: .rounded).weight(.bold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(Color.orange)
+                        .foregroundStyle(.black)
+                        .cornerRadius(12)
                 }
-                actionButton(title: "Device", system: "wifi.router.fill", color: .purple) {
-                    presentingDevicePicker = true
+
+                Button { coordinator.finishEntries() } label: {
+                    Text("Done with entries")
+                        .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(Color.green)
+                        .foregroundStyle(.black)
+                        .cornerRadius(12)
                 }
             }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 24)
+        }
+    }
 
-            Button {
-                if coordinator.canCompleteRoom {
-                    coordinator.completeWalk()
+    // MARK: - Step 3: Devices
+
+    private var devicesScreen: some View {
+        VStack(spacing: 0) {
+            stepHeader(
+                step: 3,
+                title: "Mark devices",
+                subtitle: "Walk to your router, mesh nodes, or access points and tap Add Device."
+            )
+
+            RoomCanvasView(coordinator: coordinator)
+                .padding(.horizontal, 12)
+                .padding(.top, 8)
+
+            HStack {
+                Label("\(coordinator.devices.count) devices", systemImage: "wifi.router.fill")
+                    .font(.system(.caption, design: .rounded).weight(.semibold))
+                    .foregroundStyle(.purple)
+                Spacer()
+                Label(signalLabel, systemImage: "wifi")
+                    .font(.caption2)
+                    .foregroundStyle(signalColor)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+
+            Spacer()
+
+            VStack(spacing: 10) {
+                Button { presentingDevicePicker = true } label: {
+                    Label("Add device", systemImage: "wifi.router.fill")
+                        .font(.system(.headline, design: .rounded).weight(.bold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(Color.purple)
+                        .foregroundStyle(.white)
+                        .cornerRadius(12)
                 }
-            } label: {
+
+                Button { coordinator.finishDevices() } label: {
+                    Text("Done with devices")
+                        .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(Color.green)
+                        .foregroundStyle(.black)
+                        .cornerRadius(12)
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 24)
+        }
+    }
+
+    // MARK: - Step 4: Paint floor
+
+    private var paintFloorScreen: some View {
+        VStack(spacing: 0) {
+            stepHeader(
+                step: 4,
+                title: "Paint the floor",
+                subtitle: "Walk around the room to map signal coverage."
+            )
+
+            RoomCanvasView(coordinator: coordinator)
+                .padding(.horizontal, 12)
+                .padding(.top, 8)
+
+            HStack {
+                Label("\(Int(coordinator.paintedCoverageFraction * 100))% painted", systemImage: "paintbrush.fill")
+                    .font(.system(.caption, design: .rounded).weight(.semibold))
+                    .foregroundStyle(coverageColor)
+                Spacer()
+                Label(signalLabel, systemImage: "wifi")
+                    .font(.caption2)
+                    .foregroundStyle(signalColor)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+
+            Spacer()
+
+            Button { coordinator.finishPainting() } label: {
                 HStack {
-                    Image(systemName: coordinator.canCompleteRoom ? "checkmark.circle.fill" : "paintbrush.pointed.fill")
-                    Text(coordinator.canCompleteRoom
-                         ? "Room complete"
-                         : "Paint more floor (\(Int(coordinator.paintedCoverageFraction * 100))%)")
+                    Image(systemName: coordinator.canFinishPainting ? "checkmark.circle.fill" : "paintbrush.pointed.fill")
+                    Text(coordinator.canFinishPainting
+                         ? "Done painting"
+                         : "Keep walking (\(Int(coordinator.paintedCoverageFraction * 100))%)")
                 }
                 .font(.system(.headline, design: .rounded).weight(.bold))
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
-                .background(coordinator.canCompleteRoom ? Color.green : Color.white.opacity(0.12))
-                .foregroundStyle(coordinator.canCompleteRoom ? .black : .secondary)
+                .background(coordinator.canFinishPainting ? Color.green : Color.white.opacity(0.12))
+                .foregroundStyle(coordinator.canFinishPainting ? .black : .secondary)
                 .cornerRadius(12)
             }
-            .disabled(!coordinator.canCompleteRoom)
+            .disabled(!coordinator.canFinishPainting)
+            .padding(.horizontal, 20)
+            .padding(.bottom, 24)
         }
     }
 
-    private func actionButton(title: String, system: String, color: Color, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            VStack(spacing: 4) {
-                Image(systemName: system)
-                    .font(.system(size: 18))
-                Text(title)
-                    .font(.system(.caption, design: .rounded).weight(.semibold))
+    // MARK: - Step 5a: Signal guidance (Find My-style)
+
+    private var signalGuidanceScreen: some View {
+        VStack(spacing: 0) {
+            stepHeader(
+                step: 5,
+                title: "Find best signal",
+                subtitle: "Walk toward the strongest signal spot for an optimal speed test."
+            )
+
+            Spacer()
+
+            // Find My-style proximity indicator
+            ZStack {
+                // Outer pulsing ring
+                Circle()
+                    .fill(proximityColor.opacity(0.08))
+                    .frame(width: proximityRingSize, height: proximityRingSize)
+
+                Circle()
+                    .fill(proximityColor.opacity(0.15))
+                    .frame(width: proximityRingSize * 0.7, height: proximityRingSize * 0.7)
+
+                Circle()
+                    .fill(proximityColor.opacity(0.25))
+                    .frame(width: proximityRingSize * 0.45, height: proximityRingSize * 0.45)
+
+                // Center indicator
+                VStack(spacing: 6) {
+                    Image(systemName: proximityIcon)
+                        .font(.system(size: 36))
+                        .foregroundStyle(proximityColor)
+                    Text(coordinator.signalProximity.rawValue)
+                        .font(.system(.title2, design: .rounded).weight(.bold))
+                        .foregroundStyle(proximityColor)
+                    if coordinator.distanceToBestSignal < .greatestFiniteMagnitude {
+                        let feet = coordinator.distanceToBestSignal * 3.28084
+                        Text(feet < 2 ? "You're here!" : String(format: "%.0f ft away", feet))
+                            .font(.system(.caption, design: .rounded))
+                            .foregroundStyle(.secondary)
+                    }
+                }
             }
-            .frame(maxWidth: .infinity, minHeight: 56)
-            .foregroundStyle(color)
-            .background(color.opacity(0.12))
-            .cornerRadius(12)
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(color.opacity(0.4), lineWidth: 1))
+
+            // Direction arrow (only show when not "here")
+            if coordinator.signalProximity != .here {
+                Image(systemName: "arrow.up")
+                    .font(.system(size: 32, weight: .bold))
+                    .foregroundStyle(proximityColor)
+                    .rotationEffect(.radians(Double(coordinator.bearingToBestSignal)))
+                    .padding(.top, 16)
+            }
+
+            Spacer()
+
+            VStack(spacing: 10) {
+                if coordinator.signalProximity == .here || coordinator.signalProximity == .hot {
+                    Button { coordinator.beginSpeedTest() } label: {
+                        Label("Run speed test here", systemImage: "speedometer")
+                            .font(.system(.headline, design: .rounded).weight(.bold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .background(Color.green)
+                            .foregroundStyle(.black)
+                            .cornerRadius(12)
+                    }
+                } else {
+                    Text("Get closer to the strongest signal to start the speed test")
+                        .font(.system(.caption, design: .rounded))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 20)
+                }
+
+                // Allow skipping if they want to test where they are
+                Button { coordinator.beginSpeedTest() } label: {
+                    Text("Test here instead")
+                        .font(.system(.caption, design: .rounded).weight(.semibold))
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.top, 4)
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 24)
+        }
+    }
+
+    private var proximityColor: Color {
+        switch coordinator.signalProximity {
+        case .here:   return .green
+        case .hot:    return .green
+        case .warmer: return .yellow
+        case .warm:   return .orange
+        case .far:    return .red
+        }
+    }
+
+    private var proximityRingSize: CGFloat {
+        switch coordinator.signalProximity {
+        case .here:   return 240
+        case .hot:    return 220
+        case .warmer: return 200
+        case .warm:   return 180
+        case .far:    return 160
+        }
+    }
+
+    private var proximityIcon: String {
+        switch coordinator.signalProximity {
+        case .here:   return "wifi"
+        case .hot:    return "wifi"
+        case .warmer: return "wifi"
+        case .warm:   return "wifi.exclamationmark"
+        case .far:    return "wifi.slash"
+        }
+    }
+
+    // MARK: - Step 5b: Speed test
+
+    private var speedTestScreen: some View {
+        VStack(spacing: 24) {
+            stepHeader(
+                step: 5,
+                title: "Speed test",
+                subtitle: "Stand still — testing at the optimal signal spot."
+            )
+
+            Spacer()
+
+            ZStack {
+                Circle()
+                    .stroke(Color.white.opacity(0.08), lineWidth: 10)
+                    .frame(width: 170, height: 170)
+                Image(systemName: "speedometer")
+                    .font(.system(size: 60))
+                    .foregroundStyle(cyan)
+            }
+
+            Text("Running speed test…")
+                .font(.system(.title3, design: .rounded).weight(.bold))
+                .foregroundStyle(.white)
+            Text("Hold your phone steady. About 15 seconds.")
+                .font(.system(.subheadline, design: .rounded))
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 40)
+
+            ProgressView()
+                .progressViewStyle(.linear)
+                .tint(cyan)
+                .padding(.horizontal, 60)
+            Spacer()
         }
     }
 
@@ -438,15 +679,16 @@ struct RoomScanView: View {
     private var reviewScreen: some View {
         VStack(spacing: 16) {
             HStack {
-                Button("Back") { coordinator.phase = .walking }
+                Button("Back") { coordinator.phase = .guidingToSpeedTest }
                     .foregroundStyle(.secondary)
                 Spacer()
                 Text("Review & save")
                     .font(.system(.headline, design: .rounded).weight(.bold))
                     .foregroundStyle(.white)
                 Spacer()
-                Color.clear.frame(width: 60)
+                Color.clear.frame(width: 60, height: 1)
             }
+            .fixedSize(horizontal: false, vertical: true)
             .padding()
 
             ScrollView {

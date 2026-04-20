@@ -89,8 +89,8 @@ struct ProPaywallView: View {
             featureRow(icon: "speedometer", text: "Unlimited speed tests & history (25% of grade)")
             featureRow(icon: "stethoscope", text: "Full diagnostics — interference fixes & channel tips")
             featureRow(icon: "camera.viewfinder", text: "AR Floor Plan with LiDAR scan")
-            featureRow(icon: "map.fill", text: "Coverage Planner — find dead zones & optimal mesh placement")
-            featureRow(icon: "building.2.fill", text: "Multi-floor dead zone diagnosis across your whole building")
+            featureRow(icon: "map.fill", text: "Coverage Planner — find weak spots & optimal mesh placement")
+            featureRow(icon: "building.2.fill", text: "Multi-floor weak spot diagnosis across your whole building")
             featureRow(icon: "chart.line.uptrend.xyaxis", text: "Signal trends — track your grade improving over time")
             featureRow(icon: "arrow.left.arrow.right", text: "Before/After — prove your fixes worked")
         }

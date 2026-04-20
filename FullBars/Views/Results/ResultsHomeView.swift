@@ -7,6 +7,7 @@ struct ResultsHomeView: View {
     @Environment(\.modelContext) private var modelContext
     @Query private var homes: [HomeConfiguration]
     @Query(sort: \Room.createdAt, order: .reverse) private var rooms: [Room]
+    @Query private var allPoints: [HeatmapPoint]
 
     private let cyan = FullBars.Design.Colors.accentCyan
     private let bg = Color(red: 0.05, green: 0.05, blue: 0.10)
@@ -20,6 +21,16 @@ struct ResultsHomeView: View {
         guard let home else { return [] }
         let all = rooms.filter { $0.homeId == home.id }
         return RescanHistory.visibleRooms(for: all, isPro: subs.isPro)
+    }
+
+    private var homePoints: [HeatmapPoint] {
+        guard let home else { return [] }
+        let homeIdVal = home.id
+        return allPoints.filter { $0.homeId == homeIdVal }
+    }
+
+    private var wholeHouseAnalysis: WholeHouseAnalysis {
+        WholeHouseAnalysisService.analyzeHouse(rooms: homeRooms, allPoints: homePoints)
     }
 
     /// Overall grade — average of per-room grade scores (0-100)
@@ -50,8 +61,11 @@ struct ResultsHomeView: View {
                     VStack(spacing: 20) {
                         overallCard
                         roomGrades
-                        if let home, !home.ispName.isEmpty, home.ispPromisedDownloadMbps > 0 {
-                            planComparison(home: home)
+                        if let mesh = wholeHouseAnalysis.meshRecommendation {
+                            meshRecommendationCard(mesh)
+                        }
+                        if !wholeHouseAnalysis.recommendations.isEmpty {
+                            wholeHouseRecommendationsCard
                         }
                         shareBadgeCTA
                     }
@@ -243,40 +257,113 @@ struct ResultsHomeView: View {
         .cornerRadius(12)
     }
 
-    // MARK: - Plan Comparison
+    // MARK: - Mesh Recommendation
 
-    private func planComparison(home: HomeConfiguration) -> some View {
-        let avgDownload = homeRooms.isEmpty ? 0 : homeRooms.reduce(0.0) { $0 + $1.downloadMbps } / Double(homeRooms.count)
-        let percent = home.ispPromisedDownloadMbps > 0 ? (avgDownload / home.ispPromisedDownloadMbps) * 100 : 0
+    private func meshRecommendationCard(_ mesh: MeshRecommendation) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 8) {
+                Image(systemName: "wifi.circle")
+                    .foregroundStyle(.purple)
+                    .font(.title3)
+                Text("Mesh System Recommended")
+                    .font(.system(.headline, design: .rounded))
+                    .foregroundStyle(.white)
+            }
 
-        return VStack(alignment: .leading, spacing: 10) {
-            Text("Your internet plan")
-                .font(.system(.headline, design: .rounded))
-                .foregroundStyle(.white)
+            Text(mesh.recommendation)
+                .font(.system(.subheadline, design: .rounded))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
 
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(home.ispName)
-                        .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                        .foregroundStyle(.white)
-                    Text("Paid for \(Int(home.ispPromisedDownloadMbps)) Mbps")
+            HStack(spacing: 16) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Best room")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    Text(mesh.bestRoom)
+                        .font(.system(.caption, design: .rounded).weight(.semibold))
+                        .foregroundStyle(.green)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Needs help")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    Text(mesh.worstRoom)
+                        .font(.system(.caption, design: .rounded).weight(.semibold))
+                        .foregroundStyle(.orange)
+                }
+                Spacer()
+            }
+
+            HStack(spacing: 16) {
+                HStack(spacing: 4) {
+                    Image(systemName: "arrow.down.circle.fill")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    Text(mesh.speedGap)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
-                Spacer()
-                VStack(alignment: .trailing, spacing: 4) {
-                    Text("\(Int(percent))%")
-                        .font(.system(.title2, design: .rounded).weight(.bold))
-                        .foregroundStyle(planColor(percent))
-                    Text("of plan delivered")
+                HStack(spacing: 4) {
+                    Image(systemName: "wifi")
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    Text(mesh.signalGap)
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
             }
         }
-        .padding(16)
+        .padding(14)
+        .background(Color.purple.opacity(0.08))
+        .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.purple.opacity(0.25), lineWidth: 1)
+        )
+    }
+
+    // MARK: - Whole-House Recommendations
+
+    private var wholeHouseRecommendationsCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "lightbulb.fill")
+                    .foregroundStyle(.yellow)
+                Text("Home Recommendations")
+                    .font(.system(.headline, design: .rounded))
+                    .foregroundStyle(.white)
+            }
+
+            ForEach(wholeHouseAnalysis.recommendations) { rec in
+                recommendationRow(rec)
+            }
+        }
+        .padding(14)
         .background(Color.white.opacity(0.05))
         .cornerRadius(12)
+    }
+
+    @ViewBuilder
+    private func recommendationRow(_ rec: WholeHouseRecommendation) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: rec.icon)
+                .foregroundStyle(rec.color)
+                .frame(width: 22)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(rec.title)
+                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                    .foregroundStyle(.white)
+                Text(rec.detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer()
+        }
+        .padding(12)
+        .background(Color.white.opacity(0.04))
+        .cornerRadius(10)
     }
 
     // MARK: - Helpers
@@ -290,19 +377,10 @@ struct ResultsHomeView: View {
         default:  return .red
         }
     }
-
-    private func planColor(_ percent: Double) -> Color {
-        switch percent {
-        case 85...: return .green
-        case 65..<85: return .yellow
-        case 40..<65: return .orange
-        default: return .red
-        }
-    }
 }
 
 /// Placeholder room detail — Pass 5 replaces this with the overlays view
-/// (signal, dead zones, interference, recommendations, painted coverage).
+/// (signal, weak spots, interference, recommendations, painted coverage).
 struct RoomDetailPlaceholder: View {
     let room: Room
     private let bg = Color(red: 0.05, green: 0.05, blue: 0.10)
@@ -328,5 +406,5 @@ struct RoomDetailPlaceholder: View {
 
 #Preview {
     NavigationStack { ResultsHomeView() }
-        .modelContainer(for: [HomeConfiguration.self, Room.self], inMemory: true)
+        .modelContainer(for: [HomeConfiguration.self, Room.self, HeatmapPoint.self], inMemory: true)
 }

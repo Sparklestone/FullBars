@@ -7,6 +7,7 @@ struct FloorPlanView: View {
     let walls: [DetectedWall]
     let rooms: [DetectedRoom]
     let displayMode: DisplayMode
+    var signalRange: SignalRange? = nil
     var onPointTapped: ((HeatmapPoint) -> Void)?
 
     @State private var selectedPoint: HeatmapPoint?
@@ -198,20 +199,40 @@ struct FloorPlanView: View {
 
     private var floorPlanLegend: some View {
         HStack(spacing: 12) {
-            ForEach([
-                ("Excellent", Color.green),
-                ("Good", FullBars.Design.Colors.accentCyan),
-                ("Fair", Color.yellow),
-                ("Weak", Color.orange),
-                ("Poor", Color.red)
-            ], id: \.0) { label, color in
-                HStack(spacing: 4) {
-                    Circle()
-                        .fill(color)
-                        .frame(width: 6, height: 6)
-                    Text(label)
-                        .font(.system(.caption2, design: .rounded))
-                        .foregroundStyle(.secondary)
+            if signalRange != nil {
+                // Relative mode: show gradient-based legend
+                ForEach([
+                    ("Strongest", Color.green),
+                    ("Mid", Color.yellow),
+                    ("Weakest", Color.orange),
+                    ("Weak spot", Color.red)
+                ], id: \.0) { label, color in
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(color)
+                            .frame(width: 6, height: 6)
+                        Text(label)
+                            .font(.system(.caption2, design: .rounded))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            } else {
+                // Absolute mode: show dBm-based legend
+                ForEach([
+                    ("Excellent", Color.green),
+                    ("Good", FullBars.Design.Colors.accentCyan),
+                    ("Fair", Color.yellow),
+                    ("Weak", Color.orange),
+                    ("Poor", Color.red)
+                ], id: \.0) { label, color in
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(color)
+                            .frame(width: 6, height: 6)
+                        Text(label)
+                            .font(.system(.caption2, design: .rounded))
+                            .foregroundStyle(.secondary)
+                    }
                 }
             }
         }
@@ -220,6 +241,10 @@ struct FloorPlanView: View {
     // MARK: - Helpers
 
     private func signalColor(_ strength: Int) -> Color {
+        if let range = signalRange {
+            return SignalRange.relativeColor(for: strength, range: range)
+        }
+        // Fallback to absolute thresholds
         switch strength {
         case -50...0: return .green
         case -60..<(-50): return FullBars.Design.Colors.accentCyan

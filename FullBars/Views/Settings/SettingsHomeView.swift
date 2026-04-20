@@ -130,7 +130,7 @@ struct SettingsHomeView: View {
                         .font(.system(.subheadline, design: .rounded).weight(.semibold))
                         .foregroundStyle(.white)
                     if let home, !home.ispName.isEmpty {
-                        Text("\(home.ispName) — \(Int(home.ispPromisedDownloadMbps)) Mbps")
+                        Text(home.ispName)
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     } else {
@@ -295,7 +295,7 @@ struct SettingsHomeView: View {
             ispPromisedDownloadMbps: 0,
             ispPromisedUploadMbps: 0,
             zipCode: "",
-            dataCollectionOptIn: false
+            dataCollectionOptIn: true
         )
         modelContext.insert(next)
         try? modelContext.save()
@@ -321,9 +321,12 @@ struct SettingsHomeView: View {
 
     private func resetOnboarding() {
         UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
-        // Note: we keep HomeConfiguration + Rooms in SwiftData so user doesn't lose scans.
-        // ContentView will observe hasCompletedOnboarding on next launch; for in-session
-        // reset, a restart is required (documented in the alert copy).
+        UserDefaults.standard.removeObject(forKey: "lastUsedFloorIndex")
+        // Delete all HomeConfiguration objects so the user starts fresh
+        for home in homes {
+            modelContext.delete(home)
+        }
+        try? modelContext.save()
     }
 }
 
@@ -398,19 +401,12 @@ private struct IspEditorSheet: View {
     @Bindable var home: HomeConfiguration
     private let cyan = FullBars.Design.Colors.accentCyan
 
-    @State private var downloadText: String = ""
-    @State private var uploadText: String = ""
-
     var body: some View {
         NavigationStack {
             Form {
                 Section("Provider") {
                     TextField("ISP name", text: $home.ispName)
                     TextField("ZIP code", text: $home.zipCode).keyboardType(.numberPad)
-                }
-                Section("Promised speeds") {
-                    TextField("Download (Mbps)", text: $downloadText).keyboardType(.numberPad)
-                    TextField("Upload (Mbps)", text: $uploadText).keyboardType(.numberPad)
                 }
             }
             .navigationTitle("Internet plan")
@@ -419,18 +415,12 @@ private struct IspEditorSheet: View {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") {
-                        home.ispPromisedDownloadMbps = Double(downloadText) ?? home.ispPromisedDownloadMbps
-                        home.ispPromisedUploadMbps = Double(uploadText) ?? home.ispPromisedUploadMbps
                         try? modelContext.save()
                         dismiss()
                     }
                     .bold()
                     .tint(cyan)
                 }
-            }
-            .onAppear {
-                downloadText = home.ispPromisedDownloadMbps > 0 ? "\(Int(home.ispPromisedDownloadMbps))" : ""
-                uploadText = home.ispPromisedUploadMbps > 0 ? "\(Int(home.ispPromisedUploadMbps))" : ""
             }
         }
         .preferredColorScheme(.dark)

@@ -4,7 +4,6 @@ import SwiftData
 /// Reusable whole-home coverage breakdown showing signal distribution from walkthrough data.
 struct WholeHomeCoverageView: View {
     let points: [HeatmapPoint]
-    let ispPromisedSpeed: Double
 
     private let electricCyan = FullBars.Design.Colors.accentCyan
 
@@ -50,7 +49,7 @@ struct WholeHomeCoverageView: View {
             VStack(spacing: 16) {
                 overallCard
                 coverageBreakdownCard
-                if ispPromisedSpeed > 0 { speedComparisonCard }
+                // Speed comparison card removed
                 statsRow
             }
         }
@@ -168,59 +167,6 @@ struct WholeHomeCoverageView: View {
         }
     }
 
-    // MARK: - Speed Comparison
-
-    private var speedComparisonCard: some View {
-        let deficit = DataCollectionService.speedDeficit(measured: avgSpeed, promised: ispPromisedSpeed)
-        let isDeficit = deficit > 5
-
-        return VStack(alignment: .leading, spacing: 12) {
-            Text("Speed vs. ISP Promise")
-                .font(.system(.subheadline, design: .rounded))
-                .fontWeight(.semibold)
-
-            HStack(spacing: 0) {
-                VStack(spacing: 4) {
-                    Text(String(format: "%.0f", avgSpeed))
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
-                        .foregroundStyle(isDeficit ? .orange : .green)
-                    Text("Actual Mbps")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity)
-
-                Image(systemName: "arrow.left.arrow.right")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .frame(width: 30)
-
-                VStack(spacing: 4) {
-                    Text(String(format: "%.0f", ispPromisedSpeed))
-                        .font(.system(size: 28, weight: .bold, design: .rounded))
-                        .foregroundStyle(electricCyan)
-                    Text("Promised Mbps")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity)
-            }
-
-            if isDeficit {
-                HStack(spacing: 6) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.caption2)
-                        .foregroundStyle(.orange)
-                    Text("You're getting \(String(format: "%.0f", deficit))% less than promised")
-                        .font(.system(.caption2, design: .rounded))
-                        .foregroundStyle(.orange)
-                }
-            }
-        }
-        .padding(16)
-        .background(.ultraThinMaterial)
-        .cornerRadius(12)
-    }
 
     // MARK: - Stats Row
 

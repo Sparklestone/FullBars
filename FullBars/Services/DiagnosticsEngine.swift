@@ -260,7 +260,7 @@ struct DiagnosticsEngine {
         if hasWeakSignal {
             fixes.append(GuidedFix(
                 title: "Add a WiFi Mesh System",
-                description: "Your signal is very weak in this area. A mesh WiFi system places multiple access points around your home to eliminate dead zones.",
+                description: "Your signal is very weak in this area. A mesh WiFi system places multiple access points around your home to eliminate weak spots.",
                 icon: "wifi.circle",
                 category: .hardware,
                 difficulty: .moderate,

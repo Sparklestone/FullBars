@@ -40,7 +40,7 @@ final class GradingServiceTests: XCTestCase {
     }
 
     func testAllDeadSignalCrushesScore() {
-        // All points -95 dBm — dead zone penalty should apply.
+        // All points -95 dBm — weak spot penalty should apply.
         let pts = (0..<20).map { i in point(signal: -95, x: Float(i) * 0.2, z: 0) }
         let g = GradingService.grade(points: pts, sessionId: session, durationSeconds: 60)
         XCTAssertLessThan(g.signalCoverageScore, 20)

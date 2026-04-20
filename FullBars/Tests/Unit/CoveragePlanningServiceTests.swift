@@ -1,7 +1,7 @@
 import XCTest
 @testable import FullBars
 
-/// Unit tests for CoveragePlanningService — dead-zone clustering and
+/// Unit tests for CoveragePlanningService — weak-spot clustering and
 /// router/mesh placement heuristics. These are high-value tests: the
 /// clustering logic is geometric and easy to silently break.
 final class CoveragePlanningServiceTests: XCTestCase {
@@ -14,31 +14,31 @@ final class CoveragePlanningServiceTests: XCTestCase {
 
     func testAnalyzeWithNoPointsReturnsEmptyResult() {
         let r = CoveragePlanningService.analyze(points: [])
-        XCTAssertTrue(r.deadZones.isEmpty)
+        XCTAssertTrue(r.weakSpots.isEmpty)
         XCTAssertTrue(r.meshRecommendations.isEmpty)
         XCTAssertEqual(r.coveragePercentage, 0)
         XCTAssertNil(r.estimatedRouterPosition)
     }
 
-    // MARK: - Dead-zone detection
+    // MARK: - Weak-spot detection
 
-    func testStrongSignalProducesNoDeadZones() {
+    func testStrongSignalProducesNoWeakSpots() {
         let pts = (0..<20).map { i in point(signal: -50, x: Float(i) * 1.0, z: 0) }
         let r = CoveragePlanningService.analyze(points: pts)
-        XCTAssertTrue(r.deadZones.isEmpty)
+        XCTAssertTrue(r.weakSpots.isEmpty)
     }
 
-    func testCriticalDeadZoneDetected() {
+    func testCriticalWeakSpotDetected() {
         // Cluster of very-weak points in one corner.
         let weak = (0..<6).map { i in point(signal: -90, x: Float(i) * 0.3, z: 0.2) }
         let strong = (0..<10).map { i in point(signal: -50, x: 15 + Float(i), z: 15) }
         let r = CoveragePlanningService.analyze(points: weak + strong)
-        XCTAssertFalse(r.deadZones.isEmpty, "Expected a dead zone from weak cluster")
-        XCTAssertTrue(r.deadZones.contains { $0.severity == .critical })
+        XCTAssertFalse(r.weakSpots.isEmpty, "Expected a weak spot from weak cluster")
+        XCTAssertTrue(r.weakSpots.contains { $0.severity == .critical })
     }
 
-    func testNearbyWeakPointsClusterIntoSingleZone() {
-        // Six weak points within ~1m of each other should become one dead zone,
+    func testNearbyWeakPointsClusterIntoSingleSpot() {
+        // Six weak points within ~1m of each other should become one weak spot,
         // not six. This is a guardrail against regressing the clustering step.
         let pts = [
             point(signal: -88, x: 0.0, z: 0.0),
@@ -48,22 +48,22 @@ final class CoveragePlanningServiceTests: XCTestCase {
             point(signal: -86, x: 0.3, z: 0.2),
             point(signal: -91, x: 0.0, z: 0.4),
         ]
-        let zones = CoveragePlanningService.detectDeadZones(points: pts)
-        XCTAssertEqual(zones.count, 1, "Tightly-grouped weak points should collapse into a single zone")
+        let spots = CoveragePlanningService.detectWeakSpots(points: pts)
+        XCTAssertEqual(spots.count, 1, "Tightly-grouped weak points should collapse into a single spot")
     }
 
-    func testFarApartWeakPointsProduceMultipleZones() {
-        // Two clusters separated by > clusterRadius should produce two zones.
+    func testFarApartWeakPointsProduceMultipleSpots() {
+        // Two clusters separated by > clusterRadius should produce two spots.
         let a = (0..<3).map { i in point(signal: -90, x: Float(i) * 0.2, z: 0.1) }
         let b = (0..<3).map { i in point(signal: -90, x: 20 + Float(i) * 0.2, z: 20) }
-        let zones = CoveragePlanningService.detectDeadZones(points: a + b)
-        XCTAssertGreaterThanOrEqual(zones.count, 2)
+        let spots = CoveragePlanningService.detectWeakSpots(points: a + b)
+        XCTAssertGreaterThanOrEqual(spots.count, 2)
     }
 
-    func testDeadZoneCarriesRoomNameWhenAvailable() {
+    func testWeakSpotCarriesRoomNameWhenAvailable() {
         let pts = (0..<4).map { i in point(signal: -88, x: Float(i) * 0.2, z: 0, room: "Basement") }
-        let zones = CoveragePlanningService.detectDeadZones(points: pts)
-        XCTAssertEqual(zones.first?.roomName, "Basement")
+        let spots = CoveragePlanningService.detectWeakSpots(points: pts)
+        XCTAssertEqual(spots.first?.roomName, "Basement")
     }
 
     // MARK: - Coverage percentage

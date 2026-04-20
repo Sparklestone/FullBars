@@ -1,10 +1,10 @@
 import SwiftUI
 import SwiftData
 
-/// Multi-floor signal dead zone diagnosis view.
+/// Multi-floor signal weak spot diagnosis view.
 /// Shows a stacked floor-by-floor overview with coverage grades,
-/// dead zone counts, and mesh node recommendations per floor.
-struct MultiFloorDeadZoneView: View {
+/// weak spot counts, and mesh node recommendations per floor.
+struct MultiFloorWeakSpotView: View {
     @Query(sort: \HeatmapPoint.timestamp, order: .reverse) private var allPoints: [HeatmapPoint]
     @State private var floorSummaries: [FloorCoverageSummary] = []
     @State private var expandedFloor: Int?
@@ -40,7 +40,7 @@ struct MultiFloorDeadZoneView: View {
             .padding(.vertical, 16)
         }
         .background(FullBars.Design.Colors.primaryBackground)
-        .navigationTitle("Dead Zone Diagnosis")
+        .navigationTitle("Weak Spot Diagnosis")
         .navigationBarTitleDisplayMode(.large)
         .onAppear { runAnalysis() }
         .onChange(of: allPoints.count) { _, _ in runAnalysis() }
@@ -71,7 +71,7 @@ struct MultiFloorDeadZoneView: View {
                 .font(FullBars.Design.Typography.title)
                 .foregroundStyle(.white)
 
-            Text("Scan multiple floors during your Home Scan to see cross-floor signal analysis and dead zone diagnosis.")
+            Text("Scan multiple floors during your Home Scan to see cross-floor signal analysis and weak spot diagnosis.")
                 .font(FullBars.Design.Typography.body)
                 .foregroundStyle(.white.opacity(0.6))
                 .multilineTextAlignment(.center)
@@ -184,89 +184,7 @@ struct MultiFloorDeadZoneView: View {
     private var stackedFloorVisualization: some View {
         VStack(spacing: 0) {
             ForEach(floorSummaries.reversed()) { summary in
-                let isExpanded = expandedFloor == summary.floorIndex
-
-                Button {
-                    withAnimation(.spring(response: 0.3)) {
-                        expandedFloor = isExpanded ? nil : summary.floorIndex
-                    }
-                } label: {
-                    HStack(spacing: 12) {
-                        // Floor grade badge
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(summary.grade.color.opacity(0.2))
-                                .frame(width: 40, height: 40)
-                            Text(summary.grade.rawValue)
-                                .font(.system(.title3, design: .rounded))
-                                .fontWeight(.bold)
-                                .foregroundStyle(summary.grade.color)
-                        }
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(summary.floorLabel)
-                                .font(.system(.subheadline, design: .rounded))
-                                .fontWeight(.semibold)
-                                .foregroundStyle(.white)
-
-                            HStack(spacing: 12) {
-                                Label("\(Int(summary.coveragePercentage))%", systemImage: "wifi")
-                                    .font(.system(.caption2, design: .rounded))
-                                    .foregroundStyle(Color.forSignalStrength(summary.averageSignal))
-
-                                if summary.deadZoneCount > 0 {
-                                    Label("\(summary.deadZoneCount) dead zone\(summary.deadZoneCount == 1 ? "" : "s")", systemImage: "exclamationmark.triangle.fill")
-                                        .font(.system(.caption2, design: .rounded))
-                                        .foregroundStyle(FullBars.Design.Colors.signalPoor)
-                                }
-
-                                if summary.meshNodesNeeded > 0 {
-                                    Label("\(summary.meshNodesNeeded) node\(summary.meshNodesNeeded == 1 ? "" : "s") needed", systemImage: "wifi.router.fill")
-                                        .font(.system(.caption2, design: .rounded))
-                                        .foregroundStyle(electricCyan)
-                                }
-                            }
-                        }
-
-                        Spacer()
-
-                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                            .font(.caption)
-                            .foregroundStyle(.white.opacity(0.4))
-                    }
-                    .padding(12)
-                    .background(
-                        RoundedRectangle(cornerRadius: isExpanded ? 12 : 0)
-                            .fill(FullBars.Design.Colors.cardSurface)
-                    )
-                }
-                .buttonStyle(.plain)
-
-                // Expanded mini floor plan
-                if isExpanded {
-                    let floorPoints = allPoints.filter { $0.floorIndex == summary.floorIndex }
-                    miniFloorPlan(points: floorPoints, floorIndex: summary.floorIndex)
-                        .padding(.horizontal, 12)
-                        .padding(.bottom, 12)
-                        .background(FullBars.Design.Colors.cardSurface)
-                        .transition(.opacity.combined(with: .scale(scale: 0.95, anchor: .top)))
-                }
-
-                if summary.floorIndex > 0 {
-                    // Floor separator with signal flow indicator
-                    HStack {
-                        Rectangle()
-                            .fill(Color.white.opacity(0.08))
-                            .frame(height: 1)
-                        Image(systemName: "arrow.up.arrow.down")
-                            .font(.system(size: 9))
-                            .foregroundStyle(.white.opacity(0.2))
-                        Rectangle()
-                            .fill(Color.white.opacity(0.08))
-                            .frame(height: 1)
-                    }
-                    .padding(.horizontal, 16)
-                }
+                stackedFloorRow(summary: summary)
             }
         }
         .background(
@@ -274,6 +192,106 @@ struct MultiFloorDeadZoneView: View {
                 .fill(FullBars.Design.Colors.cardSurface)
                 .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.white.opacity(0.08)))
         )
+    }
+
+    @ViewBuilder
+    private func stackedFloorRow(summary: FloorCoverageSummary) -> some View {
+        let isExpanded = expandedFloor == summary.floorIndex
+
+        Button {
+            withAnimation(.spring(response: 0.3)) {
+                expandedFloor = isExpanded ? nil : summary.floorIndex
+            }
+        } label: {
+            stackedFloorRowContent(summary: summary, isExpanded: isExpanded)
+        }
+        .buttonStyle(.plain)
+
+        // Expanded mini floor plan
+        if isExpanded {
+            let floorPoints = allPoints.filter { $0.floorIndex == summary.floorIndex }
+            miniFloorPlan(points: floorPoints, floorIndex: summary.floorIndex)
+                .padding(.horizontal, 12)
+                .padding(.bottom, 12)
+                .background(FullBars.Design.Colors.cardSurface)
+                .transition(.opacity.combined(with: .scale(scale: 0.95, anchor: .top)))
+        }
+
+        if summary.floorIndex > 0 {
+            stackedFloorSeparator
+        }
+    }
+
+    @ViewBuilder
+    private func stackedFloorRowContent(summary: FloorCoverageSummary, isExpanded: Bool) -> some View {
+        HStack(spacing: 12) {
+            // Floor grade badge
+            stackedFloorGradeBadge(summary: summary)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(summary.floorLabel)
+                    .font(.system(.subheadline, design: .rounded))
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.white)
+
+                HStack(spacing: 12) {
+                    Label("\(Int(summary.coveragePercentage))%", systemImage: "wifi")
+                        .font(.system(.caption2, design: .rounded))
+                        .foregroundStyle(Color.forSignalStrength(summary.averageSignal))
+
+                    if summary.weakSpotCount > 0 {
+                        Label("\(summary.weakSpotCount) weak spot\(summary.weakSpotCount == 1 ? "" : "s")", systemImage: "exclamationmark.triangle.fill")
+                            .font(.system(.caption2, design: .rounded))
+                            .foregroundStyle(FullBars.Design.Colors.signalPoor)
+                    }
+
+                    if summary.meshNodesNeeded > 0 {
+                        Label("\(summary.meshNodesNeeded) node\(summary.meshNodesNeeded == 1 ? "" : "s") needed", systemImage: "wifi.router.fill")
+                            .font(.system(.caption2, design: .rounded))
+                            .foregroundStyle(electricCyan)
+                    }
+                }
+            }
+
+            Spacer()
+
+            Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                .font(.caption)
+                .foregroundStyle(.white.opacity(0.4))
+        }
+        .padding(12)
+        .background(
+            RoundedRectangle(cornerRadius: isExpanded ? 12 : 0)
+                .fill(FullBars.Design.Colors.cardSurface)
+        )
+    }
+
+    @ViewBuilder
+    private func stackedFloorGradeBadge(summary: FloorCoverageSummary) -> some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 8)
+                .fill(summary.grade.color.opacity(0.2))
+                .frame(width: 40, height: 40)
+            Text(summary.grade.rawValue)
+                .font(.system(.title3, design: .rounded))
+                .fontWeight(.bold)
+                .foregroundStyle(summary.grade.color)
+        }
+    }
+
+    private var stackedFloorSeparator: some View {
+        HStack {
+            Rectangle()
+                .fill(Color.white.opacity(0.08))
+                .frame(height: 1)
+            Image(systemName: "arrow.up.arrow.down")
+                .font(.system(size: 9))
+                .foregroundStyle(.white.opacity(0.2))
+            Rectangle()
+                .fill(Color.white.opacity(0.08))
+                .frame(height: 1)
+        }
+        .padding(.horizontal, 16)
     }
 
     private func miniFloorPlan(points: [HeatmapPoint], floorIndex: Int) -> some View {
@@ -295,9 +313,9 @@ struct MultiFloorDeadZoneView: View {
                         .position(pos)
                 }
 
-                // Dead zone markers
+                // Weak spot markers
                 if let analysis {
-                    ForEach(analysis.deadZones.filter { $0.floorIndex == floorIndex }) { dz in
+                    ForEach(analysis.weakSpots.filter { $0.floorIndex == floorIndex }) { dz in
                         let pos = mapToView(x: dz.centerX, y: dz.centerZ, bounds: bounds, size: size)
                         ZStack {
                             Circle()
@@ -341,75 +359,89 @@ struct MultiFloorDeadZoneView: View {
                 .padding(.horizontal, 16)
 
             ForEach(floorSummaries) { summary in
-                NavigationLink(destination: CoveragePlannerView()) {
-                    HStack(spacing: 12) {
-                        // Coverage ring
-                        ZStack {
-                            Circle()
-                                .stroke(Color.white.opacity(0.1), lineWidth: 4)
-                                .frame(width: 44, height: 44)
-                            Circle()
-                                .trim(from: 0, to: summary.coveragePercentage / 100)
-                                .stroke(summary.grade.color, style: StrokeStyle(lineWidth: 4, lineCap: .round))
-                                .frame(width: 44, height: 44)
-                                .rotationEffect(.degrees(-90))
-                            Text(summary.grade.rawValue)
-                                .font(.system(.caption, design: .rounded))
-                                .fontWeight(.bold)
-                                .foregroundStyle(summary.grade.color)
-                        }
+                floorDetailCard(summary: summary)
+            }
+        }
+    }
 
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(summary.floorLabel)
-                                .font(.system(.subheadline, design: .rounded))
-                                .fontWeight(.semibold)
-                                .foregroundStyle(.white)
+    @ViewBuilder
+    private func floorDetailCard(summary: FloorCoverageSummary) -> some View {
+        NavigationLink(destination: CoveragePlannerView()) {
+            HStack(spacing: 12) {
+                floorCoverageRing(summary: summary)
 
-                            Text("\(Int(summary.coveragePercentage))% coverage · \(summary.averageSignal) dBm avg · \(summary.pointCount) pts")
-                                .font(.system(.caption2, design: .rounded))
-                                .foregroundStyle(.white.opacity(0.5))
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(summary.floorLabel)
+                        .font(.system(.subheadline, design: .rounded))
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.white)
 
-                            if summary.deadZoneCount > 0 || summary.meshNodesNeeded > 0 {
-                                HStack(spacing: 8) {
-                                    if summary.deadZoneCount > 0 {
-                                        HStack(spacing: 2) {
-                                            Image(systemName: "exclamationmark.triangle.fill")
-                                                .font(.system(size: 9))
-                                                .foregroundStyle(FullBars.Design.Colors.signalPoor)
-                                            Text("\(summary.deadZoneCount) dead zone\(summary.deadZoneCount == 1 ? "" : "s")")
-                                                .font(.system(size: 10, design: .rounded))
-                                                .foregroundStyle(FullBars.Design.Colors.signalPoor)
-                                        }
-                                    }
-                                    if summary.meshNodesNeeded > 0 {
-                                        HStack(spacing: 2) {
-                                            Image(systemName: "wifi.router.fill")
-                                                .font(.system(size: 9))
-                                                .foregroundStyle(electricCyan)
-                                            Text("\(summary.meshNodesNeeded) mesh node\(summary.meshNodesNeeded == 1 ? "" : "s") recommended")
-                                                .font(.system(size: 10, design: .rounded))
-                                                .foregroundStyle(electricCyan)
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                    Text("\(Int(summary.coveragePercentage))% coverage · \(summary.averageSignal) dBm avg · \(summary.pointCount) pts")
+                        .font(.system(.caption2, design: .rounded))
+                        .foregroundStyle(.white.opacity(0.5))
 
-                        Spacer()
-
-                        Image(systemName: "chevron.right")
-                            .font(.caption2)
-                            .foregroundStyle(.white.opacity(0.4))
+                    if summary.weakSpotCount > 0 || summary.meshNodesNeeded > 0 {
+                        floorDetailBadges(summary: summary)
                     }
-                    .padding(12)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(FullBars.Design.Colors.cardSurface)
-                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.08)))
-                    )
-                    .padding(.horizontal, 16)
                 }
-                .buttonStyle(.plain)
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.caption2)
+                    .foregroundStyle(.white.opacity(0.4))
+            }
+            .padding(12)
+            .background(
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(FullBars.Design.Colors.cardSurface)
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.08)))
+            )
+            .padding(.horizontal, 16)
+        }
+        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private func floorCoverageRing(summary: FloorCoverageSummary) -> some View {
+        ZStack {
+            Circle()
+                .stroke(Color.white.opacity(0.1), lineWidth: 4)
+                .frame(width: 44, height: 44)
+            Circle()
+                .trim(from: 0, to: summary.coveragePercentage / 100)
+                .stroke(summary.grade.color, style: StrokeStyle(lineWidth: 4, lineCap: .round))
+                .frame(width: 44, height: 44)
+                .rotationEffect(.degrees(-90))
+            Text(summary.grade.rawValue)
+                .font(.system(.caption, design: .rounded))
+                .fontWeight(.bold)
+                .foregroundStyle(summary.grade.color)
+        }
+    }
+
+    @ViewBuilder
+    private func floorDetailBadges(summary: FloorCoverageSummary) -> some View {
+        HStack(spacing: 8) {
+            if summary.weakSpotCount > 0 {
+                HStack(spacing: 2) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 9))
+                        .foregroundStyle(FullBars.Design.Colors.signalPoor)
+                    Text("\(summary.weakSpotCount) weak spot\(summary.weakSpotCount == 1 ? "" : "s")")
+                        .font(.system(size: 10, design: .rounded))
+                        .foregroundStyle(FullBars.Design.Colors.signalPoor)
+                }
+            }
+            if summary.meshNodesNeeded > 0 {
+                HStack(spacing: 2) {
+                    Image(systemName: "wifi.router.fill")
+                        .font(.system(size: 9))
+                        .foregroundStyle(electricCyan)
+                    Text("\(summary.meshNodesNeeded) mesh node\(summary.meshNodesNeeded == 1 ? "" : "s") recommended")
+                        .font(.system(size: 10, design: .rounded))
+                        .foregroundStyle(electricCyan)
+                }
             }
         }
     }
@@ -429,11 +461,11 @@ struct MultiFloorDeadZoneView: View {
             .padding(.horizontal, 16)
 
             VStack(alignment: .leading, spacing: 8) {
-                if analysis.hasCriticalDeadZones {
+                if analysis.hasCriticalWeakSpots {
                     recommendationRow(
                         icon: "exclamationmark.octagon.fill",
                         color: FullBars.Design.Colors.signalNoSignal,
-                        text: "Critical dead zones detected. A mesh WiFi system is strongly recommended for full coverage."
+                        text: "Critical weak spots detected. A mesh WiFi system is strongly recommended for full coverage."
                     )
                 }
 
@@ -514,7 +546,7 @@ struct MultiFloorDeadZoneView: View {
 
 #Preview {
     NavigationStack {
-        MultiFloorDeadZoneView()
+        MultiFloorWeakSpotView()
     }
     .preferredColorScheme(.dark)
 }

@@ -2,16 +2,16 @@ import Foundation
 import os
 import SwiftUI
 
-/// Analyzes heatmap data to detect dead zones, recommend mesh/router placement,
+/// Analyzes heatmap data to detect weak spots, recommend mesh/router placement,
 /// and identify interference regions. Works across single or multiple floors.
 final class CoveragePlanningService {
     private static let logger = Logger(subsystem: "com.fullbars.app", category: "CoveragePlanning")
 
     // MARK: - Thresholds
 
-    private static let deadZoneCriticalThreshold: Int = -85
-    private static let deadZoneSevereThreshold: Int = -80
-    private static let deadZoneModerateThreshold: Int = -75
+    private static let weakSpotCriticalThreshold: Int = -85
+    private static let weakSpotSevereThreshold: Int = -80
+    private static let weakSpotModerateThreshold: Int = -75
     private static let goodSignalThreshold: Int = -65
     private static let clusterRadiusMeters: Float = 2.5   // group nearby weak points
     private static let meshCoverageRadius: Float = 8.0     // typical mesh node reach
@@ -26,7 +26,7 @@ final class CoveragePlanningService {
     ) -> CoverageAnalysisResult {
         guard !points.isEmpty else {
             return CoverageAnalysisResult(
-                deadZones: [],
+                weakSpots: [],
                 meshRecommendations: [],
                 interferenceZones: [],
                 coveragePercentage: 0,
@@ -37,16 +37,16 @@ final class CoveragePlanningService {
         }
 
         let floors = Set(points.map { $0.floorIndex })
-        let deadZones = detectDeadZones(points: points)
+        let weakSpots = detectWeakSpots(points: points)
         let routerPosition = estimateRouterPosition(points: points)
-        let meshRecs = recommendMeshPlacement(points: points, deadZones: deadZones, routerPosition: routerPosition)
+        let meshRecs = recommendMeshPlacement(points: points, weakSpots: weakSpots, routerPosition: routerPosition)
         let interferenceZones = detectInterferenceZones(points: points, bleDeviceCount: bleDeviceCount)
         let coveragePct = calculateCoveragePercentage(points: points)
 
-        logger.info("Coverage analysis: \(deadZones.count) dead zones, \(meshRecs.count) mesh recommendations, \(String(format: "%.0f", coveragePct))% coverage")
+        logger.info("Coverage analysis: \(weakSpots.count) weak spots, \(meshRecs.count) mesh recommendations, \(String(format: "%.0f", coveragePct))% coverage")
 
         return CoverageAnalysisResult(
-            deadZones: deadZones,
+            weakSpots: weakSpots,
             meshRecommendations: meshRecs,
             interferenceZones: interferenceZones,
             coveragePercentage: coveragePct,
@@ -56,17 +56,17 @@ final class CoveragePlanningService {
         )
     }
 
-    // MARK: - Dead Zone Detection
+    // MARK: - Weak Spot Detection
 
-    /// Identify clusters of weak-signal points as dead zones.
-    static func detectDeadZones(points: [HeatmapPoint]) -> [DeadZone] {
+    /// Identify clusters of weak-signal points as weak spots.
+    static func detectWeakSpots(points: [HeatmapPoint]) -> [WeakSpot] {
         // Filter to weak points
-        let weakPoints = points.filter { $0.signalStrength < deadZoneModerateThreshold }
+        let weakPoints = points.filter { $0.signalStrength < weakSpotModerateThreshold }
         guard !weakPoints.isEmpty else { return [] }
 
         // Group by floor
         let byFloor = Dictionary(grouping: weakPoints, by: { $0.floorIndex })
-        var deadZones: [DeadZone] = []
+        var weakSpots: [WeakSpot] = []
 
         for (floor, floorPoints) in byFloor {
             // Cluster nearby weak points
@@ -100,10 +100,10 @@ final class CoveragePlanningService {
                 }.max() ?? 1.0
                 let radius = max(1.0, maxDist + 0.5)
 
-                let severity: DeadZoneSeverity
-                if avgSignal < deadZoneCriticalThreshold {
+                let severity: WeakSpotSeverity
+                if avgSignal < weakSpotCriticalThreshold {
                     severity = .critical
-                } else if avgSignal < deadZoneSevereThreshold {
+                } else if avgSignal < weakSpotSevereThreshold {
                     severity = .severe
                 } else {
                     severity = .moderate
@@ -112,7 +112,7 @@ final class CoveragePlanningService {
                 // Find room name from nearest point
                 let roomName = cluster.compactMap { $0.roomName }.first
 
-                deadZones.append(DeadZone(
+                weakSpots.append(WeakSpot(
                     centerX: avgX,
                     centerZ: avgZ,
                     radius: radius,
@@ -125,7 +125,7 @@ final class CoveragePlanningService {
             }
         }
 
-        return deadZones.sorted { $0.severity.rawValue < $1.severity.rawValue }
+        return weakSpots.sorted { $0.severity.rawValue < $1.severity.rawValue }
     }
 
     // MARK: - Router Position Estimation
@@ -160,7 +160,7 @@ final class CoveragePlanningService {
     /// Recommend optimal positions for mesh nodes or extenders.
     static func recommendMeshPlacement(
         points: [HeatmapPoint],
-        deadZones: [DeadZone],
+        weakSpots: [WeakSpot],
         routerPosition: CGPoint?
     ) -> [MeshPlacementRecommendation] {
         var recommendations: [MeshPlacementRecommendation] = []
@@ -180,41 +180,41 @@ final class CoveragePlanningService {
             ))
         }
 
-        // For each dead zone, recommend placement between router and dead zone
-        for deadZone in deadZones {
-            let dzPoint = CGPoint(x: CGFloat(deadZone.centerX), y: CGFloat(deadZone.centerZ))
+        // For each weak spot, recommend placement between router and weak spot
+        for weakSpot in weakSpots {
+            let wsPoint = CGPoint(x: CGFloat(weakSpot.centerX), y: CGFloat(weakSpot.centerZ))
 
-            // Place mesh node at ~60% of the way from router to dead zone
-            // (closer to dead zone, but still within range of router)
+            // Place mesh node at ~60% of the way from router to weak spot
+            // (closer to weak spot, but still within range of router)
             let meshX: Float
             let meshZ: Float
 
             if let router = routerPosition {
-                meshX = Float(router.x + (dzPoint.x - router.x) * 0.6)
-                meshZ = Float(router.y + (dzPoint.y - router.y) * 0.6)
+                meshX = Float(router.x + (wsPoint.x - router.x) * 0.6)
+                meshZ = Float(router.y + (wsPoint.y - router.y) * 0.6)
             } else {
-                // Without router estimate, place near the dead zone edge
-                meshX = deadZone.centerX
-                meshZ = deadZone.centerZ
+                // Without router estimate, place near the weak spot edge
+                meshX = weakSpot.centerX
+                meshZ = weakSpot.centerZ
             }
 
-            let placementType: PlacementType = deadZone.severity == .critical ? .meshNode : .extender
+            let placementType: PlacementType = weakSpot.severity == .critical ? .meshNode : .extender
 
-            let roomName = deadZone.roomName ?? findNearestRoom(x: meshX, z: meshZ, points: points)
+            let roomName = weakSpot.roomName ?? findNearestRoom(x: meshX, z: meshZ, points: points)
             let impact: String
-            if let room = deadZone.roomName {
-                impact = "Eliminates dead zone in \(room)"
+            if let room = weakSpot.roomName {
+                impact = "Eliminates weak spot in \(room)"
             } else {
-                impact = "Covers \(deadZone.severity.label.lowercased()) area (\(deadZone.averageSignal) dBm)"
+                impact = "Covers \(weakSpot.severity.label.lowercased()) area (\(weakSpot.averageSignal) dBm)"
             }
 
             recommendations.append(MeshPlacementRecommendation(
                 x: meshX,
                 z: meshZ,
-                floorIndex: deadZone.floorIndex,
+                floorIndex: weakSpot.floorIndex,
                 type: placementType,
                 priority: priority,
-                reason: "Dead zone detected: \(deadZone.severity.label) (\(deadZone.averageSignal) dBm avg)",
+                reason: "Weak spot detected: \(weakSpot.severity.label) (\(weakSpot.averageSignal) dBm avg)",
                 expectedImpact: impact,
                 nearestRoomName: roomName
             ))
@@ -222,7 +222,7 @@ final class CoveragePlanningService {
             priority += 1
         }
 
-        // Check for large coverage gaps even without dead zones
+        // Check for large coverage gaps even without weak spots
         let byFloor = Dictionary(grouping: points, by: { $0.floorIndex })
         for (floor, floorPoints) in byFloor {
             let bounds = calculateBounds(points: floorPoints)
@@ -372,8 +372,8 @@ final class CoveragePlanningService {
         return byFloor.map { (floor, floorPoints) in
             let avgSignal = floorPoints.map { $0.signalStrength }.reduce(0, +) / max(1, floorPoints.count)
             let coverage = calculateCoveragePercentage(points: floorPoints)
-            let deadZones = detectDeadZones(points: floorPoints)
-            let meshNeeded = deadZones.filter { $0.severity != .moderate }.count
+            let weakSpots = detectWeakSpots(points: floorPoints)
+            let meshNeeded = weakSpots.filter { $0.severity != .moderate }.count
 
             let label: String
             if floor < floorLabels.count {
@@ -388,7 +388,7 @@ final class CoveragePlanningService {
                 pointCount: floorPoints.count,
                 averageSignal: avgSignal,
                 coveragePercentage: coverage,
-                deadZoneCount: deadZones.count,
+                weakSpotCount: weakSpots.count,
                 meshNodesNeeded: meshNeeded,
                 grade: GradeLetter.from(score: coverage)
             )
@@ -405,13 +405,13 @@ final class CoveragePlanningService {
     ) -> [EdgeIndicator] {
         var indicators: [EdgeIndicator] = []
 
-        // Dead zone indicators
-        for dz in analysis.deadZones {
+        // Weak spot indicators
+        for dz in analysis.weakSpots {
             let point = dz.center
             // Always show edge indicators for notable zones
             let (edge, position) = edgePosition(for: point, in: visibleBounds, viewSize: viewSize)
             indicators.append(EdgeIndicator(
-                type: .deadZone,
+                type: .weakSpot,
                 edge: edge,
                 position: position,
                 label: dz.severity.label,

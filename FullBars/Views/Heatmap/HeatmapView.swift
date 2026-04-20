@@ -80,7 +80,8 @@ struct HeatmapView: View {
                                         points: viewModel.heatmapPoints,
                                         walls: viewModel.roomPlanService.walls,
                                         rooms: viewModel.roomPlanService.rooms,
-                                        displayMode: displayMode
+                                        displayMode: displayMode,
+                                        signalRange: WholeHouseAnalysisService.computeSignalRange(points: viewModel.heatmapPoints)
                                     )
                                     .frame(height: 300)
                                 }

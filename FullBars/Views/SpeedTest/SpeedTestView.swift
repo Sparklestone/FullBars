@@ -56,9 +56,7 @@ struct SpeedTestView: View {
                         }
 
                         // ISP Comparison (if configured)
-                        if let result = viewModel.currentResult, settingsVM.ispPromisedSpeed > 0 {
-                            ispComparisonCard(result: result)
-                        }
+                        
 
                         // Free-tier limit banner
                         speedTestLimitBanner
@@ -115,10 +113,7 @@ struct SpeedTestView: View {
                 }
                     } else {
                         ScrollView {
-                            WholeHomeCoverageView(
-                                points: allHeatmapPoints,
-                                ispPromisedSpeed: profile.ispPromisedSpeed
-                            )
+                            WholeHomeCoverageView(points: allHeatmapPoints)
                             .padding(16)
                         }
                     }
@@ -444,66 +439,6 @@ struct SpeedTestView: View {
         }
     }
 
-    // MARK: - ISP Comparison
-
-    private func ispComparisonCard(result: SpeedTestResult) -> some View {
-        let promised = settingsVM.ispPromisedSpeed
-        let actual = result.downloadSpeed
-        let percentage = promised > 0 ? (actual / promised) * 100 : 0
-        let ispName = settingsVM.ispName.isEmpty ? "Your ISP" : settingsVM.ispName
-
-        return VStack(spacing: 12) {
-            HStack {
-                Image(systemName: "chart.bar.fill")
-                    .foregroundStyle(primaryColor)
-                Text("vs. \(ispName) Promise")
-                    .font(.system(.subheadline, design: .rounded))
-                    .fontWeight(.semibold)
-                Spacer()
-            }
-
-            HStack(spacing: 4) {
-                Text("Getting")
-                    .font(.system(.caption, design: .rounded))
-                    .foregroundStyle(.secondary)
-                Text(String(format: "%.0f%%", percentage))
-                    .font(.system(.title2, design: .rounded))
-                    .fontWeight(.bold)
-                    .foregroundStyle(percentage >= 80 ? .green : percentage >= 50 ? .amber : .red)
-                Text("of promised \(Int(promised)) Mbps")
-                    .font(.system(.caption, design: .rounded))
-                    .foregroundStyle(.secondary)
-            }
-
-            // Visual bar
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(Color.white.opacity(0.1))
-                        .frame(height: 10)
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(percentage >= 80 ? .green : percentage >= 50 ? Color.amber : .red)
-                        .frame(width: geo.size.width * min(percentage, 100) / 100, height: 10)
-                }
-            }
-            .frame(height: 10)
-
-            if percentage < 70 {
-                HStack(spacing: 6) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .font(.caption2)
-                        .foregroundStyle(.orange)
-                    Text("You're getting significantly less than promised. This could support a complaint to \(ispName).")
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-            }
-        }
-        .padding(16)
-        .background(.ultraThinMaterial)
-        .cornerRadius(12)
-        .padding(.horizontal)
-    }
 
     // MARK: - Helpers
 

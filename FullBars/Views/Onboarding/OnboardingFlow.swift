@@ -6,9 +6,8 @@ import CoreMotion
 import AVFoundation
 
 /// The new onboarding flow. Writes a real `HomeConfiguration` into SwiftData
-/// (replacing the old UserDefaults-backed `UserProfile`), captures ISP plan
-/// speed for the "you're getting X% of your plan" insight, and walks the user
-/// through the four permissions we need.
+/// (replacing the old UserDefaults-backed `UserProfile`) and walks the user
+/// through the required permissions and onboarding steps.
 ///
 /// This view is used by `ContentView` when `hasCompletedOnboarding == false`.
 struct OnboardingFlow: View {
@@ -340,14 +339,10 @@ struct OnboardingFlow: View {
         VStack(spacing: 20) {
             header(icon: "speedometer",
                    title: "Your internet plan",
-                   subtitle: "We compare your measured speeds to what you're paying for — or to your area average.")
+                   subtitle: "We'll compare your measured speeds to your area average.")
 
             VStack(spacing: 14) {
                 labeledField("Provider", placeholder: "Xfinity, Verizon Fios, Spectrum…", text: $ispName)
-                HStack(spacing: 12) {
-                    labeledField("Download (Mbps)", placeholder: "500", text: $ispDownloadText, keyboard: .numberPad)
-                    labeledField("Upload (Mbps)", placeholder: "50", text: $ispUploadText, keyboard: .numberPad)
-                }
                 labeledField("ZIP code", placeholder: "94103", text: $zipCode, keyboard: .numberPad)
             }
 
@@ -698,8 +693,8 @@ struct OnboardingFlow: View {
             hasMeshNetwork: hasMeshNetwork,
             meshNodeCount: hasMeshNetwork ? meshNodeCount : 0,
             ispName: ispName,
-            ispPromisedDownloadMbps: dl,
-            ispPromisedUploadMbps: ul,
+            ispPromisedDownloadMbps: 0,
+            ispPromisedUploadMbps: 0,
             zipCode: zipCode,
             dataCollectionOptIn: dataCollectionOptIn
         )
@@ -717,19 +712,6 @@ struct OnboardingFlow: View {
         profile.dataCollectionOptIn = dataCollectionOptIn
         profile.floorLabels = floorLabels
         profile.hasCompletedSetup = true
-
-        // If user entered their plan speed, use it. Otherwise fall back to
-        // area average so comparisons still work (e.g. "30% of area average").
-        if dl > 0 {
-            profile.ispPromisedSpeed = dl
-            profile.usingAreaAverage = false
-        } else if let area = areaSpeedResult {
-            profile.ispPromisedSpeed = area.averageDownloadMbps
-            profile.usingAreaAverage = true
-        } else {
-            profile.ispPromisedSpeed = 200 // National average fallback
-            profile.usingAreaAverage = true
-        }
 
         withAnimation(.easeOut(duration: 0.3)) {
             isComplete = true

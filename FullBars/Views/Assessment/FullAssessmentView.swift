@@ -234,10 +234,6 @@ struct FullAssessmentView: View {
                     resultRow("Download Speed", "\(Int(result.downloadSpeed)) Mbps")
                     resultRow("Upload Speed", "\(Int(result.uploadSpeed)) Mbps")
                     resultRow("Latency", "\(Int(result.latency)) ms")
-                    if profile.ispPromisedSpeed > 0 {
-                        let pct = Int((result.downloadSpeed / profile.ispPromisedSpeed) * 100)
-                        resultRow("ISP Delivery", "\(pct)% of promised \(Int(profile.ispPromisedSpeed)) Mbps")
-                    }
                 }
                 .padding(18)
                 .background(cardBackground)

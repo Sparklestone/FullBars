@@ -32,7 +32,7 @@ enum GradeLetter: String, Codable, CaseIterable {
         case .A: return "This space has excellent WiFi coverage with strong signal everywhere."
         case .B: return "This space has good WiFi with only minor weak spots."
         case .C: return "This space has adequate WiFi but some areas have noticeable issues."
-        case .D: return "This space has poor WiFi with significant dead zones or speed problems."
+        case .D: return "This space has poor WiFi with significant weak spots or speed problems."
         case .F: return "This space has major WiFi connectivity issues throughout."
         }
     }

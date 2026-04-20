@@ -21,15 +21,30 @@ final class RoomScanCoordinator {
 
     enum Phase: Equatable {
         case notStarted
-        case runningSpeedTest
-        case waitingToStartWalk
-        case walking
+        case markingCorners       // Step 1: walk to corners
+        case markingEntries       // Step 2: walk to entries/exits
+        case markingDevices       // Step 3: walk to devices
+        case paintingFloor        // Step 4: walk the floor
+        case guidingToSpeedTest   // Step 5a: Find My-style guidance to best signal spot
+        case runningSpeedTest     // Step 5b: speed test at optimal location
         case reviewingBeforeSave
         case saved
         case failed(String)
     }
 
     var phase: Phase = .notStarted
+
+    /// The current guided step number (1–5) for the step indicator.
+    var currentStepNumber: Int {
+        switch phase {
+        case .markingCorners: return 1
+        case .markingEntries: return 2
+        case .markingDevices: return 3
+        case .paintingFloor: return 4
+        case .guidingToSpeedTest, .runningSpeedTest: return 5
+        default: return 0
+        }
+    }
 
     // MARK: - Captured state
 
@@ -173,7 +188,7 @@ final class RoomScanCoordinator {
 
     // MARK: - Public API
 
-    /// Start the room scan. Transitions to speedTest phase.
+    /// Start the room scan. Begins AR/WiFi/BLE services and enters Step 1 (corners).
     func start(home: HomeConfiguration, roomType: RoomType, customName: String?, floorIndex: Int) {
         self.homeId = home.id
         self.roomType = roomType
@@ -185,34 +200,145 @@ final class RoomScanCoordinator {
         bleService.startScanning()
         arService.startSession()
 
-        phase = .runningSpeedTest
-        Task { await runSpeedTest() }
-    }
-
-    /// Begin the walking phase. Called after speed test completes and the user
-    /// has tapped "Start walk".
-    func beginWalk() {
         walkStartedAt = Date()
         lastWalkPosition = currentPosition()
-        phase = .walking
+        phase = .markingCorners
 
-        sampleTimer = Timer.scheduledTimer(withTimeInterval: sampleInterval, repeats: true) { [weak self] _ in
-            Task { @MainActor in self?.tickSample() }
-        }
+        // Start signal sampling immediately — we collect data across all walk steps
+        startSampling()
+    }
 
-        // Also tick frequently for paint updates
+    /// Transition from Step 1 (corners) to Step 2 (entries).
+    func finishCorners() {
+        phase = .markingEntries
+    }
+
+    /// Transition from Step 2 (entries) to Step 3 (devices).
+    func finishEntries() {
+        phase = .markingDevices
+    }
+
+    /// Transition from Step 3 (devices) to Step 4 (floor painting).
+    func finishDevices() {
+        phase = .paintingFloor
+        // Start paint tracking
         Task { @MainActor in
-            while phase == .walking {
+            while phase == .paintingFloor {
                 updatePaint()
                 try? await Task.sleep(nanoseconds: 200_000_000) // 5 Hz
             }
         }
     }
 
+    /// Transition from Step 4 (floor painting) to Step 5 (signal guidance).
+    func finishPainting() {
+        computeBestSignalPosition()
+        phase = .guidingToSpeedTest
+    }
+
+    /// Begin the speed test at the current (optimal) location.
+    func beginSpeedTest() {
+        phase = .runningSpeedTest
+        Task { await runSpeedTest() }
+    }
+
+    /// Go back one step.
+    func goBackOneStep() {
+        switch phase {
+        case .markingCorners:
+            cancel()
+        case .markingEntries:
+            phase = .markingCorners
+        case .markingDevices:
+            phase = .markingEntries
+        case .paintingFloor:
+            phase = .markingDevices
+        case .guidingToSpeedTest:
+            phase = .paintingFloor
+            // Restart paint tracking
+            Task { @MainActor in
+                while phase == .paintingFloor {
+                    updatePaint()
+                    try? await Task.sleep(nanoseconds: 200_000_000)
+                }
+            }
+        default:
+            break
+        }
+    }
+
+    private func startSampling() {
+        sampleTimer = Timer.scheduledTimer(withTimeInterval: sampleInterval, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.tickSample() }
+        }
+    }
+
+    // MARK: - Signal guidance (Find My-style)
+
+    /// The position with the strongest WiFi signal found during the walk.
+    var bestSignalPosition: SIMD2<Float>?
+
+    /// Distance from the user's current position to the best signal spot (meters).
+    var distanceToBestSignal: Float {
+        guard let best = bestSignalPosition, let cur = currentPosition() else { return .greatestFiniteMagnitude }
+        let dx = cur.x - best.x
+        let dy = cur.y - best.y
+        return sqrt(dx * dx + dy * dy)
+    }
+
+    /// Bearing from user to best signal spot in radians (0 = north/forward).
+    var bearingToBestSignal: Float {
+        guard let best = bestSignalPosition, let cur = currentPosition() else { return 0 }
+        return atan2(best.x - cur.x, best.y - cur.y)
+    }
+
+    /// Proximity level for Find My-style UI.
+    enum Proximity: String {
+        case far = "Far"
+        case warm = "Warm"
+        case warmer = "Warmer"
+        case hot = "Hot"
+        case here = "Here!"
+    }
+
+    var signalProximity: Proximity {
+        let d = distanceToBestSignal
+        switch d {
+        case ..<0.5:  return .here
+        case ..<1.0:  return .hot
+        case ..<2.0:  return .warmer
+        case ..<4.0:  return .warm
+        default:      return .far
+        }
+    }
+
+    private func computeBestSignalPosition() {
+        guard !samples.isEmpty else {
+            bestSignalPosition = currentPosition()
+            return
+        }
+        // Find the sample with the strongest signal (closest to 0 dBm)
+        let best = samples.max(by: { $0.signalStrength < $1.signalStrength })
+        bestSignalPosition = best?.position ?? currentPosition()
+    }
+
     /// Mark the current device pose as a corner.
     func markCorner() {
         guard let p = currentPosition() else { return }
         corners.append(p)
+        if corners.count >= 3 {
+            corners = sortedConvexPolygon(corners)
+        }
+    }
+
+    /// Sort points by angle from centroid to prevent self-intersecting (hourglass) polygons
+    /// when users tap corners out of order.
+    private func sortedConvexPolygon(_ pts: [SIMD2<Float>]) -> [SIMD2<Float>] {
+        let cx = pts.map(\.x).reduce(0, +) / Float(pts.count)
+        let cy = pts.map(\.y).reduce(0, +) / Float(pts.count)
+        return pts.sorted { a, b in
+            atan2(a.y - cy, a.x - cx) < atan2(b.y - cy, b.x - cx)
+        }
     }
 
     /// Mark the current pose as a doorway. The caller then fills in connection info.
@@ -246,6 +372,11 @@ final class RoomScanCoordinator {
         phase = .reviewingBeforeSave
     }
 
+    /// Whether the floor has enough painted coverage for the Done button.
+    var canFinishPainting: Bool {
+        corners.count >= 3 && paintedCoverageFraction >= minimumCoverageFraction
+    }
+
     /// Persist the scan to SwiftData. Creates a `Room`, `Doorway`s, `DevicePlacement`s,
     /// and `HeatmapPoint`s all linked by `roomId`/`homeId`.
     func save(into modelContext: ModelContext) {
@@ -274,7 +405,7 @@ final class RoomScanCoordinator {
             sessionId: sessionId,
             gradeScore: grade.score,
             gradeLetterRaw: grade.letter,
-            deadZoneCount: grade.deadZoneCount,
+            deadZoneCount: grade.weakSpotCount,
             interferenceZoneCount: grade.interferenceCount,
             recommendationCount: grade.recommendationCount
         )
@@ -372,11 +503,11 @@ final class RoomScanCoordinator {
             uploadMbps = result.uploadSpeed
             pingMs = result.latency
             speedTestCompletedAt = Date()
-            phase = .waitingToStartWalk
-        } else {
-            // Don't fail hard — let the walk proceed even if speed test failed.
-            phase = .waitingToStartWalk
         }
+        // Whether test succeeded or failed, move to review
+        sampleTimer?.invalidate()
+        sampleTimer = nil
+        phase = .reviewingBeforeSave
     }
 
     private func stopServices() {
@@ -386,8 +517,10 @@ final class RoomScanCoordinator {
     }
 
     /// Capture a signal sample at the current position. Called by the timer.
+    /// Samples are collected during ALL walk phases (corners, entries, devices, painting).
     private func tickSample() {
-        guard phase == .walking, let position = currentPosition() else { return }
+        let walkPhases: [Phase] = [.markingCorners, .markingEntries, .markingDevices, .paintingFloor, .guidingToSpeedTest]
+        guard walkPhases.contains(phase), let position = currentPosition() else { return }
 
         // Only sample while the user is actually moving, so we don't pile up
         // duplicate samples at one spot.
@@ -414,7 +547,7 @@ final class RoomScanCoordinator {
 
     /// Update the painted-grid. Called at ~5 Hz while walking.
     private func updatePaint() {
-        guard phase == .walking, let position = currentPosition() else { return }
+        guard phase == .paintingFloor, let position = currentPosition() else { return }
 
         // Paint a small disk around the current position (accounts for the fact
         // that the user is standing in roughly a 30cm bubble, not a point).
@@ -450,7 +583,7 @@ final class RoomScanCoordinator {
     private struct RoomGrade {
         var score: Double
         var letter: String
-        var deadZoneCount: Int
+        var weakSpotCount: Int
         var interferenceCount: Int
         var recommendationCount: Int
     }
@@ -460,7 +593,7 @@ final class RoomScanCoordinator {
         // fancier analysis for the whole-home report.
         let strengths = samples.map { $0.signalStrength }
         guard !strengths.isEmpty else {
-            return RoomGrade(score: 0, letter: "F", deadZoneCount: 0, interferenceCount: 0, recommendationCount: 1)
+            return RoomGrade(score: 0, letter: "F", weakSpotCount: 0, interferenceCount: 0, recommendationCount: 1)
         }
         let avg = Double(strengths.reduce(0, +)) / Double(strengths.count)
 
@@ -485,14 +618,14 @@ final class RoomScanCoordinator {
         default:      letter = "F"
         }
 
-        let deadZones = strengths.filter { $0 < -80 }.count
+        let weakSpots = strengths.filter { $0 < -80 }.count
         let interference = bleDeviceIds.count > 15 ? 1 : 0
-        let recommendations = (final < 80 ? 1 : 0) + (deadZones > 2 ? 1 : 0)
+        let recommendations = (final < 80 ? 1 : 0) + (weakSpots > 2 ? 1 : 0)
 
         return RoomGrade(
             score: final,
             letter: letter,
-            deadZoneCount: deadZones,
+            weakSpotCount: weakSpots,
             interferenceCount: interference,
             recommendationCount: recommendations
         )

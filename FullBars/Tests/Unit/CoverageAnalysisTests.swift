@@ -3,7 +3,7 @@ import XCTest
 
 /// Tests for CoverageAnalysisResult, FloorCoverageSummary, and
 /// CoveragePlanningService.floorSummaries — the analysis layer above
-/// raw dead-zone detection.
+/// raw weak-spot detection.
 final class CoverageAnalysisTests: XCTestCase {
 
     private func point(signal: Int, x: Float = 0, z: Float = 0, floor: Int = 0, room: String? = nil, latency: Double = 20, download: Double = 80) -> HeatmapPoint {
@@ -26,7 +26,7 @@ final class CoverageAnalysisTests: XCTestCase {
             priority: 2, reason: "", expectedImpact: "", nearestRoomName: nil
         )
         let result = CoverageAnalysisResult(
-            deadZones: [],
+            weakSpots: [],
             meshRecommendations: [router, mesh, ext],
             interferenceZones: [],
             coveragePercentage: 60,
@@ -38,19 +38,19 @@ final class CoverageAnalysisTests: XCTestCase {
     }
 
     func testAssessmentTiersBasedOnCoverage() {
-        // ≥ 90% with no dead zones → Excellent
+        // ≥ 90% with no weak spots → Excellent
         let excellent = CoverageAnalysisResult(
-            deadZones: [], meshRecommendations: [], interferenceZones: [],
+            weakSpots: [], meshRecommendations: [], interferenceZones: [],
             coveragePercentage: 95, estimatedRouterPosition: nil, floorCount: 1, timestamp: .now
         )
         XCTAssertTrue(excellent.overallAssessment.contains("Excellent"))
 
         // 50-70% → Moderate
         let moderate = CoverageAnalysisResult(
-            deadZones: [
-                DeadZone(centerX: 0, centerZ: 0, radius: 1, floorIndex: 0, averageSignal: -85, pointCount: 3, roomName: nil, severity: .severe),
-                DeadZone(centerX: 5, centerZ: 5, radius: 1, floorIndex: 0, averageSignal: -82, pointCount: 2, roomName: nil, severity: .severe),
-                DeadZone(centerX: 10, centerZ: 10, radius: 1, floorIndex: 0, averageSignal: -83, pointCount: 2, roomName: nil, severity: .severe),
+            weakSpots: [
+                WeakSpot(centerX: 0, centerZ: 0, radius: 1, floorIndex: 0, averageSignal: -85, pointCount: 3, roomName: nil, severity: .severe),
+                WeakSpot(centerX: 5, centerZ: 5, radius: 1, floorIndex: 0, averageSignal: -82, pointCount: 2, roomName: nil, severity: .severe),
+                WeakSpot(centerX: 10, centerZ: 10, radius: 1, floorIndex: 0, averageSignal: -83, pointCount: 2, roomName: nil, severity: .severe),
             ],
             meshRecommendations: [
                 MeshPlacementRecommendation(x: 0, z: 0, floorIndex: 0, type: .meshNode, priority: 1, reason: "", expectedImpact: "", nearestRoomName: nil),

@@ -1,10 +1,10 @@
 import Foundation
 import SwiftUI
 
-// MARK: - Dead Zone
+// MARK: - Weak Spot
 
 /// A spatial region with critically weak or no WiFi signal.
-struct DeadZone: Identifiable {
+struct WeakSpot: Identifiable {
     let id = UUID()
     let centerX: Float
     let centerZ: Float
@@ -13,12 +13,12 @@ struct DeadZone: Identifiable {
     let averageSignal: Int     // dBm
     let pointCount: Int
     let roomName: String?
-    let severity: DeadZoneSeverity
+    let severity: WeakSpotSeverity
 
     var center: CGPoint { CGPoint(x: CGFloat(centerX), y: CGFloat(centerZ)) }
 }
 
-enum DeadZoneSeverity: String, CaseIterable {
+enum WeakSpotSeverity: String, CaseIterable {
     case critical   // < -85 dBm or no signal
     case severe     // -85 to -80 dBm
     case moderate   // -80 to -75 dBm
@@ -67,7 +67,7 @@ struct MeshPlacementRecommendation: Identifiable {
     let type: PlacementType
     let priority: Int           // 1 = highest priority
     let reason: String
-    let expectedImpact: String  // e.g. "Eliminates dead zone in Bedroom"
+    let expectedImpact: String  // e.g. "Eliminates weak spot in Bedroom"
     let nearestRoomName: String?
 
     var position: CGPoint { CGPoint(x: CGFloat(x), y: CGFloat(z)) }
@@ -141,9 +141,9 @@ enum InterferenceLevel: String, CaseIterable {
 
 // MARK: - Coverage Analysis Result
 
-/// Complete analysis result combining dead zones, placement recommendations, and interference.
+/// Complete analysis result combining weak spots, placement recommendations, and interference.
 struct CoverageAnalysisResult {
-    let deadZones: [DeadZone]
+    let weakSpots: [WeakSpot]
     let meshRecommendations: [MeshPlacementRecommendation]
     let interferenceZones: [InterferenceZone]
     let coveragePercentage: Double       // % of area with good+ signal
@@ -151,19 +151,19 @@ struct CoverageAnalysisResult {
     let floorCount: Int
     let timestamp: Date
 
-    var deadZoneCount: Int { deadZones.count }
-    var hasCriticalDeadZones: Bool { deadZones.contains { $0.severity == .critical } }
+    var weakSpotCount: Int { weakSpots.count }
+    var hasCriticalWeakSpots: Bool { weakSpots.contains { $0.severity == .critical } }
     var meshNodesNeeded: Int { meshRecommendations.filter { $0.type == .meshNode || $0.type == .extender }.count }
 
     var overallAssessment: String {
-        if deadZones.isEmpty && coveragePercentage >= 90 {
-            return "Excellent coverage — no dead zones detected."
-        } else if deadZones.count <= 2 && coveragePercentage >= 70 {
-            return "Good coverage with \(deadZones.count) weak spot\(deadZones.count == 1 ? "" : "s"). A mesh node would help."
+        if weakSpots.isEmpty && coveragePercentage >= 90 {
+            return "Excellent coverage — no weak spots detected."
+        } else if weakSpots.count <= 2 && coveragePercentage >= 70 {
+            return "Good coverage with \(weakSpots.count) weak spot\(weakSpots.count == 1 ? "" : "s"). A mesh node would help."
         } else if coveragePercentage >= 50 {
             return "Moderate coverage. \(meshNodesNeeded) mesh node\(meshNodesNeeded == 1 ? "" : "s") recommended."
         } else {
-            return "Poor coverage with significant dead zones. A mesh system is strongly recommended."
+            return "Poor coverage with significant weak spots. A mesh system is strongly recommended."
         }
     }
 
@@ -189,14 +189,14 @@ struct EdgeIndicator: Identifiable {
 }
 
 enum EdgeIndicatorType {
-    case deadZone
+    case weakSpot
     case meshPlacement
     case interference
     case routerPosition
 
     var icon: String {
         switch self {
-        case .deadZone:       return "exclamationmark.triangle.fill"
+        case .weakSpot:       return "exclamationmark.triangle.fill"
         case .meshPlacement:  return "wifi.router.fill"
         case .interference:   return "antenna.radiowaves.left.and.right"
         case .routerPosition: return "wifi.circle.fill"
@@ -214,7 +214,7 @@ struct FloorCoverageSummary: Identifiable {
     let pointCount: Int
     let averageSignal: Int
     let coveragePercentage: Double
-    let deadZoneCount: Int
+    let weakSpotCount: Int
     let meshNodesNeeded: Int
     let grade: GradeLetter
 }

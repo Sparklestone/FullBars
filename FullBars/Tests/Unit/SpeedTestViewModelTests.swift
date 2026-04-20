@@ -67,7 +67,7 @@ final class SpeedTestViewModelTests: XCTestCase {
 
     func testAnalysisResultAssessmentExcellent() {
         let result = CoverageAnalysisResult(
-            deadZones: [],
+            weakSpots: [],
             meshRecommendations: [],
             interferenceZones: [],
             coveragePercentage: 95,
@@ -76,19 +76,19 @@ final class SpeedTestViewModelTests: XCTestCase {
             timestamp: .now
         )
         XCTAssertTrue(result.overallAssessment.contains("Excellent"))
-        XCTAssertEqual(result.deadZoneCount, 0)
-        XCTAssertFalse(result.hasCriticalDeadZones)
+        XCTAssertEqual(result.weakSpotCount, 0)
+        XCTAssertFalse(result.hasCriticalWeakSpots)
     }
 
     func testAnalysisResultAssessmentPoor() {
-        let dz = DeadZone(
+        let ws = WeakSpot(
             centerX: 0, centerZ: 0, radius: 2,
             floorIndex: 0, averageSignal: -90,
             pointCount: 5, roomName: "Garage",
             severity: .critical
         )
         let result = CoverageAnalysisResult(
-            deadZones: [dz, dz, dz],
+            weakSpots: [ws, ws, ws],
             meshRecommendations: [],
             interferenceZones: [],
             coveragePercentage: 30,
@@ -97,20 +97,20 @@ final class SpeedTestViewModelTests: XCTestCase {
             timestamp: .now
         )
         XCTAssertTrue(result.overallAssessment.contains("Poor"))
-        XCTAssertTrue(result.hasCriticalDeadZones)
-        XCTAssertEqual(result.deadZoneCount, 3)
+        XCTAssertTrue(result.hasCriticalWeakSpots)
+        XCTAssertEqual(result.weakSpotCount, 3)
     }
 
-    // MARK: - DeadZoneSeverity display
+    // MARK: - WeakSpotSeverity display
 
-    func testDeadZoneSeverityLabels() {
-        XCTAssertEqual(DeadZoneSeverity.critical.label, "No Signal")
-        XCTAssertEqual(DeadZoneSeverity.severe.label, "Very Weak")
-        XCTAssertEqual(DeadZoneSeverity.moderate.label, "Weak Zone")
+    func testWeakSpotSeverityLabels() {
+        XCTAssertEqual(WeakSpotSeverity.critical.label, "No Signal")
+        XCTAssertEqual(WeakSpotSeverity.severe.label, "Very Weak")
+        XCTAssertEqual(WeakSpotSeverity.moderate.label, "Weak Zone")
     }
 
-    func testDeadZoneSeverityDescriptions() {
-        for severity in DeadZoneSeverity.allCases {
+    func testWeakSpotSeverityDescriptions() {
+        for severity in WeakSpotSeverity.allCases {
             XCTAssertFalse(severity.friendlyDescription.isEmpty)
             XCTAssertFalse(severity.icon.isEmpty)
         }

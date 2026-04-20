@@ -91,7 +91,6 @@
 		C4018C05AD16C9D92E358D5C /* HomeSelectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A975FB5FA2D201243B11836 /* HomeSelectionTests.swift */; };
 		C62277758AAE85AD38989E65 /* DashboardViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F2F5BA20E45FCF6AA99C000 /* DashboardViewModel.swift */; };
 		CC11111111111111DD002001 /* FullAssessmentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC11111111111111DD001001 /* FullAssessmentView.swift */; };
-		CC11111111111111DD002002 /* ISPReportCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC11111111111111DD001002 /* ISPReportCardView.swift */; };
 		CC11111111111111DD002003 /* FixGuideView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC11111111111111DD001003 /* FixGuideView.swift */; };
 		CE4A0EB87E561DF8D82C30EF /* PersistenceService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85E19DE664DFAE524F163BD1 /* PersistenceService.swift */; };
 		D1240C8795C6246942520D66 /* ARWalkthroughView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 612EC2D9DC2281B729C6916D /* ARWalkthroughView.swift */; };
@@ -122,6 +121,15 @@
 		FE17439BD2C4195AA2B0582F /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB4F630C6F17245DDAFD6ED4 /* OnboardingView.swift */; };
 		FECFB0DA064AF1FF6FFD8F3D /* MetricCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 486732FCD4AF6AEEB9DFE12B /* MetricCard.swift */; };
 		CC22222222222222DD002001 /* AreaSpeedService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC22222222222222DD001001 /* AreaSpeedService.swift */; };
+		CC33333333333333DD001002 /* WholeHouseAnalysisService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC33333333333333DD001001 /* WholeHouseAnalysisService.swift */; };
+		CC33333333333333DD002002 /* AddressSearchService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC33333333333333DD002001 /* AddressSearchService.swift */; };
+		CC33333333333333DD003002 /* AnalyticsUploadService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC33333333333333DD003001 /* AnalyticsUploadService.swift */; };
+		CC33333333333333DD004002 /* CloudKitSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC33333333333333DD004001 /* CloudKitSyncService.swift */; };
+		CC33333333333333DD005002 /* SupabaseClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC33333333333333DD005001 /* SupabaseClient.swift */; };
+		CC33333333333333DD006002 /* SupabaseConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC33333333333333DD006001 /* SupabaseConfig.swift */; };
+		CC33333333333333DD007002 /* SponsoredRecommendationCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC33333333333333DD007001 /* SponsoredRecommendationCard.swift */; };
+		CC33333333333333DD008002 /* FloorMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC33333333333333DD008001 /* FloorMapView.swift */; };
+		CC33333333333333DD009002 /* FullReportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC33333333333333DD009001 /* FullReportView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -262,7 +270,6 @@
 		CB299B500D372F2D12208BEC /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		CB746CE09D0B688BF698CFB5 /* Room.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = Room.swift; sourceTree = "<group>"; };
 		CC11111111111111DD001001 /* FullAssessmentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullAssessmentView.swift; sourceTree = "<group>"; };
-		CC11111111111111DD001002 /* ISPReportCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ISPReportCardView.swift; sourceTree = "<group>"; };
 		CC11111111111111DD001003 /* FixGuideView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FixGuideView.swift; sourceTree = "<group>"; };
 		CF351B7432994DA8C04F25A6 /* GradingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GradingService.swift; sourceTree = "<group>"; };
 		CFE7F8A469287BFD740898B6 /* SpeedTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeedTestView.swift; sourceTree = "<group>"; };
@@ -284,6 +291,15 @@
 		FA1FAC22D4011A3D3BCDE9F2 /* BLEScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BLEScannerView.swift; sourceTree = "<group>"; };
 		FF2A8A123E42E575AC76598F /* RescanHistoryTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = RescanHistoryTests.swift; sourceTree = "<group>"; };
 		CC22222222222222DD001001 /* AreaSpeedService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AreaSpeedService.swift; sourceTree = "<group>"; };
+		CC33333333333333DD001001 /* WholeHouseAnalysisService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WholeHouseAnalysisService.swift; sourceTree = "<group>"; };
+		CC33333333333333DD002001 /* AddressSearchService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddressSearchService.swift; sourceTree = "<group>"; };
+		CC33333333333333DD003001 /* AnalyticsUploadService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsUploadService.swift; sourceTree = "<group>"; };
+		CC33333333333333DD004001 /* CloudKitSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitSyncService.swift; sourceTree = "<group>"; };
+		CC33333333333333DD005001 /* SupabaseClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseClient.swift; sourceTree = "<group>"; };
+		CC33333333333333DD006001 /* SupabaseConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseConfig.swift; sourceTree = "<group>"; };
+		CC33333333333333DD007001 /* SponsoredRecommendationCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SponsoredRecommendationCard.swift; sourceTree = "<group>"; };
+		CC33333333333333DD008001 /* FloorMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloorMapView.swift; sourceTree = "<group>"; };
+		CC33333333333333DD009001 /* FullReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FullReportView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -472,7 +488,6 @@
 			isa = PBXGroup;
 			children = (
 				8CD09AF6E5B599AAC10E6E59 /* WiFiReportCardView.swift */,
-				CC11111111111111DD001002 /* ISPReportCardView.swift */,
 			);
 			path = ReportCard;
 			sourceTree = "<group>";
@@ -525,6 +540,7 @@
 				4788CFB599FF24419855A2EC /* ShareSheet.swift */,
 				02494E5E26839C2F834F074C /* SignalStrengthIndicator.swift */,
 				4E34A16586269DCAE71CF316 /* WholeHomeCoverageView.swift */,
+				CC33333333333333DD007001 /* SponsoredRecommendationCard.swift */,
 			);
 			path = Components;
 			sourceTree = "<group>";
@@ -535,6 +551,8 @@
 				A9FD9F576CF8CF0B2422B10E /* ResultsHomeView.swift */,
 				1A8D6342C13999B1A74DC029 /* RoomDetailView.swift */,
 				716BC1812F36C67731C84A3A /* ShareBadgeView.swift */,
+				CC33333333333333DD008001 /* FloorMapView.swift */,
+				CC33333333333333DD009001 /* FullReportView.swift */,
 			);
 			path = Results;
 			sourceTree = "<group>";
@@ -683,6 +701,12 @@
 				2006FD311BDA1127F7DA2526 /* SubscriptionManager.swift */,
 				70BBA0C7FEF4D874A07724F4 /* WiFiService.swift */,
 				087121938FE5F8BB77B75EAE /* RoomScanCoordinator.swift */,
+				CC33333333333333DD001001 /* WholeHouseAnalysisService.swift */,
+				CC33333333333333DD002001 /* AddressSearchService.swift */,
+				CC33333333333333DD003001 /* AnalyticsUploadService.swift */,
+				CC33333333333333DD004001 /* CloudKitSyncService.swift */,
+				CC33333333333333DD005001 /* SupabaseClient.swift */,
+				CC33333333333333DD006001 /* SupabaseConfig.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -915,7 +939,6 @@
 				A36CE82A981E76E03E935721 /* DiagnosticsEngine.swift in Sources */,
 				20C220099630FCD193DD47CD /* DiagnosticsView.swift in Sources */,
 				CC11111111111111DD002003 /* FixGuideView.swift in Sources */,
-				CC11111111111111DD002002 /* ISPReportCardView.swift in Sources */,
 				CC11111111111111DD002001 /* FullAssessmentView.swift in Sources */,
 				7F64E1FD97DDC47412AAF4EA /* DiagnosticsViewModel.swift in Sources */,
 				E902FE760FF1060C3FB30A37 /* DisplayMode.swift in Sources */,
@@ -979,6 +1002,15 @@
 				103F96BBD54B81F948044B2C /* RoomDetailView.swift in Sources */,
 				3A28AF4B2965D94B7293F484 /* ShareBadgeView.swift in Sources */,
 				F32B037BE98798705EF329B4 /* SettingsHomeView.swift in Sources */,
+				CC33333333333333DD001002 /* WholeHouseAnalysisService.swift in Sources */,
+				CC33333333333333DD002002 /* AddressSearchService.swift in Sources */,
+				CC33333333333333DD003002 /* AnalyticsUploadService.swift in Sources */,
+				CC33333333333333DD004002 /* CloudKitSyncService.swift in Sources */,
+				CC33333333333333DD005002 /* SupabaseClient.swift in Sources */,
+				CC33333333333333DD006002 /* SupabaseConfig.swift in Sources */,
+				CC33333333333333DD007002 /* SponsoredRecommendationCard.swift in Sources */,
+				CC33333333333333DD008002 /* FloorMapView.swift in Sources */,
+				CC33333333333333DD009002 /* FullReportView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1142,7 +1174,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 202604200829;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = 7588DAA645;
 				ENABLE_PREVIEWS = YES;
@@ -1225,7 +1257,7 @@
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CODE_SIGN_ENTITLEMENTS = FullBarsWidget/FullBarsWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 202604200829;
 				DEVELOPMENT_TEAM = 7588DAA645;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = FullBarsWidget/Info.plist;
@@ -1255,7 +1287,7 @@
 				ASSETCATALOG_COMPILER_WIDGET_BACKGROUND_COLOR_NAME = WidgetBackground;
 				CODE_SIGN_ENTITLEMENTS = FullBarsWidget/FullBarsWidget.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 202604200829;
 				DEVELOPMENT_TEAM = 7588DAA645;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = FullBarsWidget/Info.plist;
@@ -1317,7 +1349,7 @@
 				CODE_SIGN_IDENTITY = "Apple Development";
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 202604200829;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = 7588DAA645;
 				ENABLE_NS_ASSERTIONS = NO;

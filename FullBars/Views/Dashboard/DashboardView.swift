@@ -445,7 +445,7 @@ struct DashboardView: View {
                             title: displayMode == .basic ? "Coverage Planner" : "Mesh Planner",
                             icon: "map.fill",
                             color: .indigo,
-                            subtitle: displayMode == .basic ? "Find dead zones & fix them" : "Dead zones & mesh placement"
+                            subtitle: displayMode == .basic ? "Find weak spots & fix them" : "Weak spots & mesh placement"
                         )
                     }
                 } else {
@@ -468,9 +468,9 @@ struct DashboardView: View {
                 }
 
                 if subscription.isPro {
-                    NavigationLink(destination: MultiFloorDeadZoneView()) {
+                    NavigationLink(destination: MultiFloorWeakSpotView()) {
                         QuickActionCard(
-                            title: displayMode == .basic ? "Dead Zone Check" : "Dead Zone Diagnosis",
+                            title: displayMode == .basic ? "Weak Spot Check" : "Weak Spot Diagnosis",
                             icon: "building.2.fill",
                             color: .teal,
                             subtitle: displayMode == .basic ? "Multi-floor signal check" : "Cross-floor analysis"
@@ -479,7 +479,7 @@ struct DashboardView: View {
                 } else {
                     Button { showPaywall = true } label: {
                         QuickActionCard(
-                            title: displayMode == .basic ? "Dead Zone Check" : "Dead Zone Diagnosis",
+                            title: displayMode == .basic ? "Weak Spot Check" : "Weak Spot Diagnosis",
                             icon: "building.2.fill",
                             color: .teal,
                             subtitle: "Pro"

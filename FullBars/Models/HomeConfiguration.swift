@@ -46,7 +46,7 @@ final class HomeConfiguration {
         ispPromisedDownloadMbps: Double = 0,
         ispPromisedUploadMbps: Double = 0,
         zipCode: String = "",
-        dataCollectionOptIn: Bool = false
+        dataCollectionOptIn: Bool = true
     ) {
         self.id = id
         self.createdAt = createdAt

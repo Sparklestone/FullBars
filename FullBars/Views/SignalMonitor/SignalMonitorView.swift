@@ -52,8 +52,7 @@ struct SignalMonitorView: View {
                     } else {
                         ScrollView {
                             WholeHomeCoverageView(
-                                points: allHeatmapPoints,
-                                ispPromisedSpeed: profile.ispPromisedSpeed
+                                points: allHeatmapPoints
                             )
                             .padding(16)
                         }

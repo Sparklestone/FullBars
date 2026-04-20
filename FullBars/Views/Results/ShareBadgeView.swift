@@ -44,10 +44,6 @@ struct ShareBadgeView: View {
         guard !rooms.isEmpty else { return 0 }
         return rooms.reduce(0.0) { $0 + $1.pingMs } / Double(rooms.count)
     }
-    private var planDeliveredPercent: Int {
-        guard home.ispPromisedDownloadMbps > 0 else { return 0 }
-        return Int((avgDownload / home.ispPromisedDownloadMbps) * 100)
-    }
 
     // MARK: - Body
 
@@ -181,20 +177,6 @@ struct ShareBadgeView: View {
                     statColumn(value: "\(Int(avgUpload))", unit: "Mbps ↑", color: .blue)
                     divider
                     statColumn(value: "\(Int(avgPing))", unit: "ms ping", color: .yellow)
-                }
-
-                if home.ispPromisedDownloadMbps > 0 {
-                    HStack {
-                        Image(systemName: "checkmark.seal.fill")
-                            .foregroundStyle(cyan)
-                        Text("Delivering \(planDeliveredPercent)% of the \(Int(home.ispPromisedDownloadMbps)) Mbps plan")
-                            .font(.system(.caption, design: .rounded).weight(.semibold))
-                            .foregroundStyle(.white)
-                        Spacer()
-                    }
-                    .padding(10)
-                    .background(Color.white.opacity(0.05))
-                    .cornerRadius(8)
                 }
 
                 Divider().background(Color.white.opacity(0.1))

@@ -143,29 +143,6 @@ struct SettingsView: View {
                                             .foregroundStyle(electricCyan)
                                     }
 
-                                    VStack(alignment: .leading, spacing: 8) {
-                                        HStack {
-                                            Text("Promised Speed")
-                                                .font(.subheadline)
-                                            Spacer()
-                                            Text(viewModel.ispPromisedSpeed > 0
-                                                ? "\(Int(viewModel.ispPromisedSpeed)) Mbps"
-                                                : "Not set")
-                                                .fontWeight(.semibold)
-                                                .foregroundStyle(electricCyan)
-                                        }
-
-                                        Slider(
-                                            value: $viewModel.ispPromisedSpeed,
-                                            in: 0...2000,
-                                            step: 25
-                                        )
-                                        .tint(electricCyan)
-
-                                        Text("Set this to compare speed test results against what you pay for")
-                                            .font(.caption2)
-                                            .foregroundStyle(.secondary)
-                                    }
                                 }
                             }
                         }

@@ -51,7 +51,7 @@ enum AccessibilityID {
         static let layersTab         = "roomDetail.layers"
         static let recommendationsTab = "roomDetail.recommendations"
         static let heatmapToggle     = "roomDetail.heatmapToggle"
-        static let deadZoneToggle    = "roomDetail.deadZoneToggle"
+        static let weakSpotToggle    = "roomDetail.weakSpotToggle"
         static let devicesToggle     = "roomDetail.devicesToggle"
     }
 
@@ -100,7 +100,7 @@ enum AccessibilityID {
     // MARK: - Coverage Planner
 
     enum Planner {
-        static let deadZoneList      = "planner.deadZones"
+        static let deadZoneList      = "planner.weakSpots"
         static let meshRecommendation = "planner.meshRec"
         static let coveragePercentage = "planner.coveragePct"
     }
