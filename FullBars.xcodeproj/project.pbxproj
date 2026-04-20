@@ -87,6 +87,7 @@
 		B67092663C89F6F3AD443429 /* AnimatedRingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DC4C9E44A71E928710C4455 /* AnimatedRingView.swift */; };
 		B9FE54C7280AEB897389B86E /* BeforeAfterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 497FF576A07E17F6DA56FB3E /* BeforeAfterView.swift */; };
 		C26FCDA2639EFDA0FBEDB7AE /* WiFiReportCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CD09AF6E5B599AAC10E6E59 /* WiFiReportCardView.swift */; };
+		A1B2C3D4E5F6A7B8C9D0E1F2 /* ISPReportCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2E1D0C9B8A7F6E5D4C3B2A1 /* ISPReportCardView.swift */; };
 		C3D4E5F6A7B8C9D0E1F2A3B4 /* CoverageAnalysisTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C4D5E6F7A8B9C0D1E2F3A4B /* CoverageAnalysisTests.swift */; };
 		C4018C05AD16C9D92E358D5C /* HomeSelectionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A975FB5FA2D201243B11836 /* HomeSelectionTests.swift */; };
 		C62277758AAE85AD38989E65 /* DashboardViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F2F5BA20E45FCF6AA99C000 /* DashboardViewModel.swift */; };
@@ -237,6 +238,7 @@
 		8C699E25105D25DD7C8F69F0 /* SpeedTestViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeedTestViewModel.swift; sourceTree = "<group>"; };
 		8C7198E509D45D6C48146E72 /* HeatmapViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeatmapViewModel.swift; sourceTree = "<group>"; };
 		8CD09AF6E5B599AAC10E6E59 /* WiFiReportCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WiFiReportCardView.swift; sourceTree = "<group>"; };
+		F2E1D0C9B8A7F6E5D4C3B2A1 /* ISPReportCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ISPReportCardView.swift; sourceTree = "<group>"; };
 		923DD94D2686BCEB35600034 /* ActionItemsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionItemsView.swift; sourceTree = "<group>"; };
 		952CA0F4E475B835D3C822EA /* SwiftDataPersistenceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SwiftDataPersistenceTests.swift; sourceTree = "<group>"; };
 		983DBE8DD37F09BB91FB98BC /* HomeSelection.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HomeSelection.swift; sourceTree = "<group>"; };
@@ -488,6 +490,7 @@
 			isa = PBXGroup;
 			children = (
 				8CD09AF6E5B599AAC10E6E59 /* WiFiReportCardView.swift */,
+				F2E1D0C9B8A7F6E5D4C3B2A1 /* ISPReportCardView.swift */,
 			);
 			path = ReportCard;
 			sourceTree = "<group>";
@@ -986,6 +989,7 @@
 				7BBD05B7F65A3FB512F6DF7F /* WalkthroughSetupView.swift in Sources */,
 				F4DE73E830B3886C5B63285C /* WholeHomeCoverageView.swift in Sources */,
 				C26FCDA2639EFDA0FBEDB7AE /* WiFiReportCardView.swift in Sources */,
+				A1B2C3D4E5F6A7B8C9D0E1F2 /* ISPReportCardView.swift in Sources */,
 				82126DF0C0A82C1645437F77 /* WiFiService.swift in Sources */,
 				92A3EE6CDC3F64AA280F3A11 /* HomeConfiguration.swift in Sources */,
 				559E50BDCBEAE80422B67E02 /* Room.swift in Sources */,

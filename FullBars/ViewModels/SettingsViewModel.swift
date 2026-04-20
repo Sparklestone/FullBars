@@ -93,7 +93,15 @@ final class SettingsViewModel {
             try context.delete(model: ActionItem.self)
             try context.delete(model: SpaceGrade.self)
             try context.delete(model: WalkthroughSession.self)
+            try context.delete(model: Room.self)
+            try context.delete(model: Doorway.self)
+            try context.delete(model: DevicePlacement.self)
+            try context.delete(model: HomeConfiguration.self)
+            try context.delete(model: AnonymousDataSnapshot.self)
             try context.save()
+            // Also clear onboarding so user starts fresh
+            UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
+            UserDefaults.standard.removeObject(forKey: "lastUsedFloorIndex")
         } catch {
             Self.logger.error("Error clearing data: \(error.localizedDescription)")
         }
