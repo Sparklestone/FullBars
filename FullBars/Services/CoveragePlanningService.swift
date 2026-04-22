@@ -9,9 +9,9 @@ final class CoveragePlanningService {
 
     // MARK: - Thresholds
 
-    private static let weakSpotCriticalThreshold: Int = -85
-    private static let weakSpotSevereThreshold: Int = -80
-    private static let weakSpotModerateThreshold: Int = -75
+    private static let weakSpotCriticalThreshold: Int = -90   // no usable signal
+    private static let weakSpotSevereThreshold: Int = -85     // barely usable — drops expected
+    private static let weakSpotModerateThreshold: Int = -80   // weak — streaming/video calls unreliable
     private static let goodSignalThreshold: Int = -65
     private static let clusterRadiusMeters: Double = 2.5   // group nearby weak points
     private static let meshCoverageRadius: Double = 8.0     // typical mesh node reach

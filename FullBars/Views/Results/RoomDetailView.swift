@@ -46,13 +46,9 @@ struct RoomDetailView: View {
     }
 
     private var weakSpotPoints: [HeatmapPoint] {
-        // Relative threshold: points that fall ≥15 dB below the room average
-        // are considered potential weak spots. This prevents false positives
-        // in rooms with uniformly strong signal.
-        let avg = points.isEmpty ? -70
-            : points.map(\.signalStrength).reduce(0, +) / points.count
-        let threshold = avg - 15  // matches CoveragePlanningService.warningDropDB
-        return points.filter { $0.signalStrength < threshold }
+        // Absolute threshold matching CoveragePlanningService.weakSpotModerateThreshold (-80 dBm).
+        // Below -80 dBm, moderate performance criteria (streaming, video calls) cannot be met.
+        return points.filter { $0.signalStrength < -80 }
     }
 
     private var houseSignalRange: SignalRange {
@@ -944,12 +940,13 @@ struct RoomMapCanvas: View {
                 }
 
                 // Layer 3: IDW area-based signal heatmap
-                if points.count >= 3 {
+                if points.count >= 3, let range = signalRange {
                     Canvas { ctx, size in
                         drawIDWHeatmap(
                             context: ctx, size: size,
                             points: points, project: project,
-                            bounds: bounds, scale: scale
+                            bounds: bounds, scale: scale,
+                            signalRange: range
                         )
                     }
                 }
@@ -1014,7 +1011,8 @@ struct RoomMapCanvas: View {
         points: [HeatmapPoint],
         project: (Double, Double) -> CGPoint,
         bounds: Bounds,
-        scale: CGFloat
+        scale: CGFloat,
+        signalRange: SignalRange
     ) {
         let cellPx: CGFloat = 8
         let cols = Int(ceil(size.width / cellPx))
@@ -1033,8 +1031,8 @@ struct RoomMapCanvas: View {
         let power: Double = 2.5
         let maxRadius: CGFloat = 80
 
-        // Faint light blue color for positive coverage heatmap
-        let heatmapColor = Color(red: 0.55, green: 0.78, blue: 1.0) // light blue
+        // Use whole-house relative signal range for green→orange coloring
+        let range = signalRange
 
         for row in 0..<rows {
             for col in 0..<cols {
@@ -1071,14 +1069,21 @@ struct RoomMapCanvas: View {
 
                 guard totalWeight > 0 else { continue }
 
-                // Signal-strength-based opacity — stronger signal = more opaque
                 let interpolated = weightedSignal / totalWeight
-                // Map signal range: strong (-40) → 0.55, weak (-90) → 0.12
+                let dBm = Int(interpolated)
+
+                // Skip weak-spot-level signals (they have their own overlay)
+                guard dBm >= -80 else { continue }
+
+                // Green→orange relative color from whole-house range
+                let cellColor = SignalRange.relativeColor(for: dBm, range: range)
+
+                // Opacity: stronger signal = more opaque
                 let normalised = min(1.0, max(0.0, (interpolated + 90) / 50))
-                let opacity = 0.12 + normalised * 0.43
+                let opacity = 0.20 + normalised * 0.45
 
                 let rect = CGRect(x: CGFloat(col) * cellPx, y: CGFloat(row) * cellPx, width: cellPx, height: cellPx)
-                ctx.fill(Path(rect), with: .color(heatmapColor.opacity(opacity)))
+                ctx.fill(Path(rect), with: .color(cellColor.opacity(opacity)))
             }
         }
     }

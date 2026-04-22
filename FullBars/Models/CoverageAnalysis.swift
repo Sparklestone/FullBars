@@ -19,9 +19,9 @@ struct WeakSpot: Identifiable {
 }
 
 enum WeakSpotSeverity: String, CaseIterable {
-    case critical   // < -85 dBm or no signal
-    case severe     // -85 to -80 dBm
-    case moderate   // -80 to -75 dBm
+    case critical   // < -90 dBm — no usable signal
+    case severe     // -90 to -85 dBm — barely usable, frequent drops
+    case moderate   // -85 to -80 dBm — streaming/video calls unreliable
 
     var color: Color {
         switch self {
