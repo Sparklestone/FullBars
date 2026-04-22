@@ -8,6 +8,9 @@ struct ResultsHomeView: View {
     @Query private var homes: [HomeConfiguration]
     @Query(sort: \Room.createdAt, order: .reverse) private var rooms: [Room]
     @Query private var allPoints: [HeatmapPoint]
+    @Query private var allDevices: [DevicePlacement]
+    @Query private var allDoorways: [Doorway]
+    @Query(sort: \SpaceGrade.timestamp, order: .reverse) private var spaceGrades: [SpaceGrade]
 
     private let cyan = FullBars.Design.Colors.accentCyan
     private let bg = Color(red: 0.05, green: 0.05, blue: 0.10)
@@ -15,6 +18,9 @@ struct ResultsHomeView: View {
     @State private var presentingBadge = false
     @State private var presentingPaywall = false
     @State private var subs = SubscriptionManager.shared
+    @State private var presentingFullReport = false
+    @State private var presentingISPReport = false
+    @State private var presentingWiFiReportCard = false
     @State private var roomToDelete: Room?
     @State private var roomToRename: Room?
     @State private var renameText: String = ""
@@ -31,6 +37,22 @@ struct ResultsHomeView: View {
         guard let home else { return [] }
         let homeIdVal = home.id
         return allPoints.filter { $0.homeId == homeIdVal }
+    }
+
+    private var homeDevices: [DevicePlacement] {
+        guard let home else { return [] }
+        let homeIdVal = home.id
+        return allDevices.filter { $0.homeId == homeIdVal }
+    }
+
+    private var homeDoorways: [Doorway] {
+        guard let home else { return [] }
+        let roomIds = Set(homeRooms.map(\.id))
+        return allDoorways.filter { roomIds.contains($0.roomId) }
+    }
+
+    private var latestGrade: SpaceGrade? {
+        spaceGrades.first  // already sorted newest-first
     }
 
     private var wholeHouseAnalysis: WholeHouseAnalysis {
@@ -64,7 +86,21 @@ struct ResultsHomeView: View {
                 } else {
                     VStack(spacing: 20) {
                         overallCard
+                        fullReportButton
                         roomGrades
+                        // Floor plan map
+                        if homeRooms.count >= 2, let home {
+                            floorMapSection(home)
+                        }
+
+                        // ISP Report Card
+                        ispReportButton
+
+                        // WiFi Report Card (shareable grade summary)
+                        if latestGrade != nil {
+                            wifiReportCardButton
+                        }
+
                         if let mesh = wholeHouseAnalysis.meshRecommendation {
                             meshRecommendationCard(mesh)
                         }
@@ -80,6 +116,29 @@ struct ResultsHomeView: View {
         .navigationTitle("Results")
         .navigationBarTitleDisplayMode(.inline)
         .preferredColorScheme(.dark)
+        .sheet(isPresented: $presentingISPReport) {
+            ISPReportCardView()
+        }
+        .sheet(isPresented: $presentingWiFiReportCard) {
+            if let grade = latestGrade {
+                WiFiReportCardView(
+                    grade: grade,
+                    ssid: home?.ispName ?? "Unknown",
+                    displayMode: DisplayMode(rawValue: UserDefaults.standard.string(forKey: "displayMode") ?? DisplayMode.basic.rawValue) ?? .basic
+                )
+            }
+        }
+        .sheet(isPresented: $presentingFullReport) {
+            if let home {
+                FullReportView(
+                    home: home,
+                    rooms: homeRooms,
+                    allPoints: homePoints,
+                    allDevices: homeDevices,
+                    allDoorways: homeDoorways
+                )
+            }
+        }
         .sheet(isPresented: $presentingBadge) {
             if let home {
                 ShareBadgeView(home: home, rooms: homeRooms)
@@ -118,6 +177,138 @@ struct ResultsHomeView: View {
         } message: {
             Text("Enter a new name for this room.")
         }
+    }
+
+    // MARK: - Floor Map Section
+
+    private func floorMapSection(_ home: HomeConfiguration) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Floor Plan")
+                .font(.system(.headline, design: .rounded))
+                .foregroundStyle(.white)
+
+            FloorMapView(rooms: homeRooms, doorways: homeDoorways, home: home)
+                .frame(height: 260)
+                .background(Color.white.opacity(0.03))
+                .cornerRadius(14)
+        }
+    }
+
+    // MARK: - ISP Report Button
+
+    private var ispReportButton: some View {
+        Button {
+            presentingISPReport = true
+        } label: {
+            HStack(spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.orange.opacity(0.15))
+                        .frame(width: 48, height: 48)
+                    Image(systemName: "antenna.radiowaves.left.and.right")
+                        .font(.title3)
+                        .foregroundStyle(.orange)
+                }
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("ISP Report Card")
+                        .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                        .foregroundStyle(.white)
+                    Text("See how your internet provider stacks up based on your speed tests.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .foregroundStyle(.secondary)
+            }
+            .padding(14)
+            .background(Color.white.opacity(0.05))
+            .cornerRadius(12)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.orange.opacity(0.3), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - WiFi Report Card Button
+
+    private var wifiReportCardButton: some View {
+        Button {
+            presentingWiFiReportCard = true
+        } label: {
+            HStack(spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color.green.opacity(0.15))
+                        .frame(width: 48, height: 48)
+                    Image(systemName: "wifi.circle.fill")
+                        .font(.title3)
+                        .foregroundStyle(.green)
+                }
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("WiFi Report Card")
+                        .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                        .foregroundStyle(.white)
+                    Text("Shareable grade summary — your home's WiFi \"Carfax\" report.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .foregroundStyle(.secondary)
+            }
+            .padding(14)
+            .background(Color.white.opacity(0.05))
+            .cornerRadius(12)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(Color.green.opacity(0.3), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Full Report Button
+
+    private var fullReportButton: some View {
+        Button {
+            presentingFullReport = true
+        } label: {
+            HStack(spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(cyan.opacity(0.15))
+                        .frame(width: 48, height: 48)
+                    Image(systemName: "doc.richtext.fill")
+                        .font(.title3)
+                        .foregroundStyle(cyan)
+                }
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Full House Report")
+                        .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                        .foregroundStyle(.white)
+                    Text("PDF with whole-house synopsis, room comparisons, and heatmaps.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(2)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .foregroundStyle(.secondary)
+            }
+            .padding(14)
+            .background(Color.white.opacity(0.05))
+            .cornerRadius(12)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(cyan.opacity(0.3), lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Share Badge CTA
