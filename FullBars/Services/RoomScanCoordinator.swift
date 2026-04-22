@@ -364,6 +364,21 @@ final class RoomScanCoordinator {
         return cap.id
     }
 
+    // MARK: - Removal (long-press delete)
+
+    func removeCorner(at index: Int) {
+        guard corners.indices.contains(index) else { return }
+        corners.remove(at: index)
+    }
+
+    func removeDoorway(id: UUID) {
+        doorways.removeAll { $0.id == id }
+    }
+
+    func removeDevice(id: UUID) {
+        devices.removeAll { $0.id == id }
+    }
+
     /// Transition to review state. Stops sampling but keeps AR running so the
     /// user can still see their progress.
     func completeWalk() {

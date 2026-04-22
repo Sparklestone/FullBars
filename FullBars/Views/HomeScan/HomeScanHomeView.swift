@@ -21,6 +21,9 @@ struct HomeScanHomeView: View {
     @State private var showRenameAlert = false
     private var home: HomeConfiguration? { HomeSelection.activeHome(from: homes) }
 
+    /// Closure to switch to the Results tab (injected by AppShell).
+    var switchToResults: (() -> Void)? = nil
+
     // Only show rooms for the active home — deduped for free users.
     private var homeRooms: [Room] {
         guard let home else { return [] }
@@ -208,8 +211,20 @@ struct HomeScanHomeView: View {
                     .foregroundStyle(.secondary)
             }
 
-            ForEach(homeRooms) { room in
-                roomCard(room)
+            ForEach(floorGroups, id: \.floorIndex) { group in
+                if floorGroups.count > 1 {
+                    Text(group.label)
+                        .font(.system(.caption, design: .rounded).weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .padding(.top, group.floorIndex == floorGroups.first?.floorIndex ? 0 : 6)
+                }
+                ForEach(group.rooms) { room in
+                    NavigationLink {
+                        RoomDetailView(room: room)
+                    } label: {
+                        roomCard(room)
+                    }
+                    .buttonStyle(.plain)
                     .contextMenu {
                         Button {
                             renameText = room.customName ?? ""
@@ -224,6 +239,7 @@ struct HomeScanHomeView: View {
                             Label("Delete", systemImage: "trash")
                         }
                     }
+                }
             }
 
             Button {
@@ -239,6 +255,22 @@ struct HomeScanHomeView: View {
                     .overlay(RoundedRectangle(cornerRadius: 12).stroke(cyan.opacity(0.4), lineWidth: 1))
             }
             .padding(.top, 8)
+
+            // View Results button
+            if let switchToResults {
+                Button {
+                    switchToResults()
+                } label: {
+                    Label("View Results", systemImage: "chart.bar.doc.horizontal")
+                        .font(.system(.headline, design: .rounded).weight(.bold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(Color.green)
+                        .foregroundStyle(.black)
+                        .cornerRadius(14)
+                }
+                .padding(.top, 4)
+            }
         }
     }
 
@@ -292,6 +324,29 @@ struct HomeScanHomeView: View {
         case "D": return .orange
         default:  return .red
         }
+    }
+
+    // MARK: - Floor Grouping
+
+    private struct FloorGroup {
+        let floorIndex: Int
+        let label: String
+        let rooms: [Room]
+    }
+
+    private var floorGroups: [FloorGroup] {
+        let grouped = Dictionary(grouping: homeRooms) { $0.floorIndex }
+        return grouped.keys.sorted().map { index in
+            let label = floorLabel(forIndex: index)
+            return FloorGroup(floorIndex: index, label: label, rooms: grouped[index] ?? [])
+        }
+    }
+
+    private func floorLabel(forIndex index: Int) -> String {
+        guard let home, home.floorLabels.indices.contains(index) else {
+            return "Floor \(index + 1)"
+        }
+        return home.floorLabels[index]
     }
 }
 

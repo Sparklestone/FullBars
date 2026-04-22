@@ -5,20 +5,24 @@ import SwiftData
 /// Replaces the old five-tab layout (Dashboard, Signal, Speed, Home Scan, Settings).
 struct AppShell: View {
     @State private var settingsVM = SettingsViewModel()
+    @State private var selectedTab: AppTab = .homeScan
     private let cyan = FullBars.Design.Colors.accentCyan
 
     var body: some View {
-        TabView {
-            NavigationStack { HomeScanHomeView() }
+        TabView(selection: $selectedTab) {
+            NavigationStack { HomeScanHomeView(switchToResults: { selectedTab = .results }) }
                 .tabItem { Label("Home Scan", systemImage: "figure.walk.motion") }
+                .tag(AppTab.homeScan)
                 .accessibilityLabel("Home Scan Tab")
 
             NavigationStack { ResultsHomeView() }
                 .tabItem { Label("Results", systemImage: "chart.bar.doc.horizontal") }
+                .tag(AppTab.results)
                 .accessibilityLabel("Results Tab")
 
             NavigationStack { SettingsHomeView() }
                 .tabItem { Label("Settings", systemImage: "gearshape.fill") }
+                .tag(AppTab.settings)
                 .accessibilityLabel("Settings Tab")
         }
         .tint(cyan)
@@ -26,6 +30,10 @@ struct AppShell: View {
         .background(Color(red: 0.05, green: 0.05, blue: 0.10))
         .environment(\.displayMode, settingsVM.displayMode)
     }
+}
+
+enum AppTab: Hashable {
+    case homeScan, results, settings
 }
 
 #Preview {

@@ -19,7 +19,6 @@ struct ResultsHomeView: View {
     @State private var presentingPaywall = false
     @State private var subs = SubscriptionManager.shared
     @State private var presentingFullReport = false
-    @State private var presentingISPReport = false
     @State private var presentingWiFiReportCard = false
     @State private var roomToDelete: Room?
     @State private var roomToRename: Room?
@@ -86,15 +85,13 @@ struct ResultsHomeView: View {
                 } else {
                     VStack(spacing: 20) {
                         overallCard
+                        shareBadgeCTA
                         fullReportButton
                         roomGrades
                         // Floor plan map
                         if homeRooms.count >= 2, let home {
                             floorMapSection(home)
                         }
-
-                        // ISP Report Card
-                        ispReportButton
 
                         // WiFi Report Card (shareable grade summary)
                         if latestGrade != nil {
@@ -107,7 +104,6 @@ struct ResultsHomeView: View {
                         if !wholeHouseAnalysis.recommendations.isEmpty {
                             wholeHouseRecommendationsCard
                         }
-                        shareBadgeCTA
                     }
                     .padding(20)
                 }
@@ -116,9 +112,6 @@ struct ResultsHomeView: View {
         .navigationTitle("Results")
         .navigationBarTitleDisplayMode(.inline)
         .preferredColorScheme(.dark)
-        .sheet(isPresented: $presentingISPReport) {
-            ISPReportCardView()
-        }
         .sheet(isPresented: $presentingWiFiReportCard) {
             if let grade = latestGrade {
                 WiFiReportCardView(
@@ -192,45 +185,6 @@ struct ResultsHomeView: View {
                 .background(Color.white.opacity(0.03))
                 .cornerRadius(14)
         }
-    }
-
-    // MARK: - ISP Report Button
-
-    private var ispReportButton: some View {
-        Button {
-            presentingISPReport = true
-        } label: {
-            HStack(spacing: 14) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(Color.orange.opacity(0.15))
-                        .frame(width: 48, height: 48)
-                    Image(systemName: "antenna.radiowaves.left.and.right")
-                        .font(.title3)
-                        .foregroundStyle(.orange)
-                }
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("ISP Report Card")
-                        .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                        .foregroundStyle(.white)
-                    Text("See how your internet provider stacks up based on your speed tests.")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-                }
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .foregroundStyle(.secondary)
-            }
-            .padding(14)
-            .background(Color.white.opacity(0.05))
-            .cornerRadius(12)
-            .overlay(
-                RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.orange.opacity(0.3), lineWidth: 1)
-            )
-        }
-        .buttonStyle(.plain)
     }
 
     // MARK: - WiFi Report Card Button
@@ -334,7 +288,7 @@ struct ResultsHomeView: View {
                     }
                     VStack(alignment: .leading, spacing: 3) {
                         HStack(spacing: 6) {
-                            Text(String(localized: "results.share_badge"))
+                            Text("Shareable Results Badge")
                                 .font(.system(.subheadline, design: .rounded).weight(.semibold))
                                 .foregroundStyle(.white)
                                 .accessibilityIdentifier(AccessibilityID.Results.shareBadgeButton)
@@ -439,26 +393,34 @@ struct ResultsHomeView: View {
                 .font(.system(.headline, design: .rounded))
                 .foregroundStyle(.white)
 
-            ForEach(homeRooms) { room in
-                NavigationLink {
-                    RoomDetailView(room: room)
-                } label: {
-                    roomGradeRow(room)
+            ForEach(floorGroups, id: \.floorIndex) { group in
+                if floorGroups.count > 1 {
+                    Text(group.label)
+                        .font(.system(.caption, design: .rounded).weight(.semibold))
+                        .foregroundStyle(.secondary)
+                        .padding(.top, group.floorIndex == floorGroups.first?.floorIndex ? 0 : 6)
                 }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier(AccessibilityID.Results.roomRow + ".\(room.displayName)")
-                .contextMenu {
-                    Button {
-                        renameText = room.customName ?? ""
-                        roomToRename = room
-                        showRenameAlert = true
+                ForEach(group.rooms) { room in
+                    NavigationLink {
+                        RoomDetailView(room: room)
                     } label: {
-                        Label("Rename", systemImage: "pencil")
+                        roomGradeRow(room)
                     }
-                    Button(role: .destructive) {
-                        roomToDelete = room
-                    } label: {
-                        Label("Delete", systemImage: "trash")
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier(AccessibilityID.Results.roomRow + ".\(room.displayName)")
+                    .contextMenu {
+                        Button {
+                            renameText = room.customName ?? ""
+                            roomToRename = room
+                            showRenameAlert = true
+                        } label: {
+                            Label("Rename", systemImage: "pencil")
+                        }
+                        Button(role: .destructive) {
+                            roomToDelete = room
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
                     }
                 }
             }
@@ -615,6 +577,29 @@ struct ResultsHomeView: View {
         case "D": return .orange
         default:  return .red
         }
+    }
+
+    // MARK: - Floor Grouping
+
+    private struct FloorGroup {
+        let floorIndex: Int
+        let label: String
+        let rooms: [Room]
+    }
+
+    private var floorGroups: [FloorGroup] {
+        let grouped = Dictionary(grouping: homeRooms) { $0.floorIndex }
+        return grouped.keys.sorted().map { index in
+            let label = floorLabel(forIndex: index)
+            return FloorGroup(floorIndex: index, label: label, rooms: grouped[index] ?? [])
+        }
+    }
+
+    private func floorLabel(forIndex index: Int) -> String {
+        guard let home, home.floorLabels.indices.contains(index) else {
+            return "Floor \(index + 1)"
+        }
+        return home.floorLabels[index]
     }
 }
 

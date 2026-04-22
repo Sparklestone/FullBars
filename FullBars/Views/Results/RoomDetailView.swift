@@ -24,6 +24,7 @@ struct RoomDetailView: View {
     @State private var showPainted: Bool = true
     @State private var showDevices: Bool = true
     @State private var showTechnicalDetails: Bool = (UserDefaults.standard.string(forKey: "displayMode") ?? DisplayMode.basic.rawValue) == DisplayMode.technical.rawValue
+    @State private var mapAlignedToNorth: Bool = true
 
     private let cyan = FullBars.Design.Colors.accentCyan
     private let bg = Color(red: 0.05, green: 0.05, blue: 0.10)
@@ -360,11 +361,34 @@ struct RoomDetailView: View {
 
     // MARK: - Map
 
+    /// Rotation angle for map alignment.
+    /// When north-aligned, no rotation. When phone-aligned, rotate by the room's compass heading.
+    private var mapRotation: Angle {
+        mapAlignedToNorth ? .zero : .degrees(-room.compassHeading)
+    }
+
     private var mapCard: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Floor plan")
-                .font(.system(.headline, design: .rounded))
-                .foregroundStyle(.white)
+            HStack {
+                Text("Floor plan")
+                    .font(.system(.headline, design: .rounded))
+                    .foregroundStyle(.white)
+                Spacer()
+                // Compass alignment toggle
+                Button {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        mapAlignedToNorth.toggle()
+                    }
+                } label: {
+                    Image(systemName: mapAlignedToNorth ? "location.north.fill" : "location.north.line.fill")
+                        .font(.system(size: 18))
+                        .foregroundStyle(mapAlignedToNorth ? cyan : .orange)
+                        .rotationEffect(mapRotation)
+                        .frame(width: 36, height: 36)
+                        .background(Color.white.opacity(0.08))
+                        .clipShape(Circle())
+                }
+            }
 
             RoomMapCanvas(
                 room: room,
@@ -376,7 +400,9 @@ struct RoomDetailView: View {
                 showPainted: showPainted,
                 signalRange: houseSignalRange
             )
+            .rotationEffect(mapRotation)
             .frame(height: 300)
+            .clipped()
             .background(Color.black.opacity(0.25))
             .cornerRadius(12)
             .overlay(

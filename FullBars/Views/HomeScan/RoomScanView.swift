@@ -113,13 +113,28 @@ struct RoomScanView: View {
                             Text("Floor")
                                 .font(.system(.subheadline, design: .rounded).weight(.semibold))
                                 .foregroundStyle(.white)
-                            Picker("Floor", selection: $selectedFloorIndex) {
+                            HStack(spacing: 10) {
                                 ForEach(0..<home.numberOfFloors, id: \.self) { i in
-                                    Text(home.floorLabels.indices.contains(i) ? home.floorLabels[i] : "Floor \(i+1)")
-                                        .tag(i)
+                                    let label = home.floorLabels.indices.contains(i) ? home.floorLabels[i] : "Floor \(i+1)"
+                                    let isSelected = selectedFloorIndex == i
+                                    Button {
+                                        selectedFloorIndex = i
+                                    } label: {
+                                        Text(label)
+                                            .font(.system(.caption, design: .rounded).weight(.semibold))
+                                            .foregroundStyle(isSelected ? .white : .secondary)
+                                            .frame(maxWidth: .infinity, minHeight: 40)
+                                            .background(isSelected ? cyan.opacity(0.15) : Color.white.opacity(0.05))
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 10)
+                                                    .stroke(isSelected ? cyan : Color.white.opacity(0.1),
+                                                            lineWidth: isSelected ? 2 : 1)
+                                            )
+                                            .cornerRadius(10)
+                                    }
+                                    .buttonStyle(.plain)
                                 }
                             }
-                            .pickerStyle(.segmented)
                         }
                     }
 
@@ -949,7 +964,9 @@ struct DevicePlacementSheet: View {
                     .pickerStyle(.inline)
                 }
                 Section("Details") {
-                    Toggle("Primary router", isOn: $isPrimary)
+                    if type == .router {
+                        Toggle("Primary router", isOn: $isPrimary)
+                    }
                     TextField("Label (optional)", text: $label)
                 }
             }
@@ -972,6 +989,10 @@ struct DevicePlacementSheet: View {
             .onAppear {
                 // If this is the first device, default to primary router.
                 if coordinator.devices.isEmpty { isPrimary = true }
+            }
+            .onChange(of: type) { _, newType in
+                // Only routers can be primary
+                if newType != .router { isPrimary = false }
             }
         }
         .preferredColorScheme(.dark)
@@ -1046,8 +1067,16 @@ struct RoomCanvasView: View {
                     let p = project(corner)
                     Circle()
                         .fill(cyan)
-                        .frame(width: 12, height: 12)
+                        .frame(width: 20, height: 20)
+                        .overlay(Circle().fill(cyan).frame(width: 12, height: 12))
                         .position(p)
+                        .contextMenu {
+                            Button(role: .destructive) {
+                                coordinator.removeCorner(at: idx)
+                            } label: {
+                                Label("Delete corner", systemImage: "trash")
+                            }
+                        }
                 }
 
                 // Doorways
@@ -1056,7 +1085,16 @@ struct RoomCanvasView: View {
                     Image(systemName: "door.left.hand.open")
                         .font(.system(size: 16))
                         .foregroundStyle(.orange)
+                        .frame(width: 32, height: 32)
+                        .contentShape(Rectangle())
                         .position(p)
+                        .contextMenu {
+                            Button(role: .destructive) {
+                                coordinator.removeDoorway(id: doorway.id)
+                            } label: {
+                                Label("Delete entry", systemImage: "trash")
+                            }
+                        }
                 }
 
                 // Devices
@@ -1065,7 +1103,16 @@ struct RoomCanvasView: View {
                     Image(systemName: device.isPrimaryRouter ? "wifi.router.fill" : "dot.radiowaves.left.and.right")
                         .font(.system(size: 18))
                         .foregroundStyle(.purple)
+                        .frame(width: 32, height: 32)
+                        .contentShape(Rectangle())
                         .position(p)
+                        .contextMenu {
+                            Button(role: .destructive) {
+                                coordinator.removeDevice(id: device.id)
+                            } label: {
+                                Label("Delete device", systemImage: "trash")
+                            }
+                        }
                 }
 
                 // Current position (pulsing)

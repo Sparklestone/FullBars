@@ -26,7 +26,7 @@ struct OnboardingFlow: View {
     @State private var hasMeshNetwork: Bool = false
     @State private var meshNodeCount: Int = 0
     @State private var addressText: String = ""
-    @State private var addressSuggestions: [String] = []
+    @State private var addressSearch = AddressSearchService()
     @State private var selectedSquareFootage: SquareFootageRange = .sqft1800
     @State private var ispName: String = ""
     @State private var ispDownloadText: String = ""
@@ -150,8 +150,8 @@ struct OnboardingFlow: View {
                    title: "What type of home?",
                    subtitle: "Helps us calibrate expectations for coverage and speed.")
 
-            // Address input
-            VStack(alignment: .leading, spacing: 8) {
+            // Address input with autocomplete
+            VStack(alignment: .leading, spacing: 4) {
                 Text("Address (optional)")
                     .font(.system(.caption, design: .rounded))
                     .foregroundStyle(.secondary)
@@ -165,6 +165,47 @@ struct OnboardingFlow: View {
                     .cornerRadius(10)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.words)
+                    .onChange(of: addressText) { _, newValue in
+                        addressSearch.query = newValue
+                    }
+
+                // Address suggestions dropdown
+                if !addressSearch.suggestions.isEmpty && !addressText.isEmpty {
+                    VStack(spacing: 0) {
+                        ForEach(addressSearch.suggestions.prefix(4)) { suggestion in
+                            Button {
+                                Task {
+                                    if let resolved = await addressSearch.resolve(suggestion) {
+                                        addressText = resolved.fullAddress
+                                        if !resolved.zipCode.isEmpty {
+                                            zipCode = resolved.zipCode
+                                        }
+                                        addressSearch.suggestions = []
+                                    }
+                                }
+                            } label: {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(suggestion.title)
+                                        .font(.system(.caption, design: .rounded).weight(.medium))
+                                        .foregroundStyle(.white)
+                                    if !suggestion.subtitle.isEmpty {
+                                        Text(suggestion.subtitle)
+                                            .font(.system(.caption2, design: .rounded))
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                            }
+                            .buttonStyle(.plain)
+                            Divider().overlay(Color.white.opacity(0.06))
+                        }
+                    }
+                    .background(Color.white.opacity(0.06))
+                    .cornerRadius(10)
+                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.1), lineWidth: 1))
+                }
             }
 
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
