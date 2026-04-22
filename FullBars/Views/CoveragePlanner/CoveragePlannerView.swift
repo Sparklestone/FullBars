@@ -287,7 +287,7 @@ struct CoveragePlannerView: View {
 
                 // Router position
                 if showRouter, let analysis, let router = analysis.estimatedRouterPosition {
-                    let pos = mapToView(x: Float(router.x), y: Float(router.y), bounds: bounds, size: size)
+                    let pos = mapToView(x: Double(router.x), y: Double(router.y), bounds: bounds, size: size)
                     routerMarker(at: pos)
                 }
 
@@ -425,7 +425,7 @@ struct CoveragePlannerView: View {
 
     // MARK: - Edge Indicators Overlay
 
-    private func edgeIndicatorsOverlay(analysis: CoverageAnalysisResult, bounds: (minX: Float, maxX: Float, minY: Float, maxY: Float), viewSize: CGSize) -> some View {
+    private func edgeIndicatorsOverlay(analysis: CoverageAnalysisResult, bounds: (minX: Double, maxX: Double, minY: Double, maxY: Double), viewSize: CGSize) -> some View {
         let cgBounds = CGRect(
             x: CGFloat(bounds.minX),
             y: CGFloat(bounds.minY),
@@ -707,11 +707,11 @@ struct CoveragePlannerView: View {
 
     // MARK: - Drawing Helpers
 
-    private func pointBounds(_ points: [HeatmapPoint]) -> (minX: Float, maxX: Float, minY: Float, maxY: Float) {
+    private func pointBounds(_ points: [HeatmapPoint]) -> (minX: Double, maxX: Double, minY: Double, maxY: Double) {
         guard !points.isEmpty else { return (0, 1, 0, 1) }
         let xs = points.map(\.x)
         let zs = points.map(\.z)
-        let padding: Float = 2.0
+        let padding: Double = 2.0
         return (
             (xs.min() ?? 0) - padding,
             (xs.max() ?? 0) + padding,
@@ -720,7 +720,7 @@ struct CoveragePlannerView: View {
         )
     }
 
-    private func mapToView(x: Float, y: Float, bounds b: (minX: Float, maxX: Float, minY: Float, maxY: Float), size: CGSize) -> CGPoint {
+    private func mapToView(x: Double, y: Double, bounds b: (minX: Double, maxX: Double, minY: Double, maxY: Double), size: CGSize) -> CGPoint {
         let rangeX = max(0.001, b.maxX - b.minX)
         let rangeY = max(0.001, b.maxY - b.minY)
         return CGPoint(
@@ -729,7 +729,7 @@ struct CoveragePlannerView: View {
         )
     }
 
-    private func mapRadius(_ meters: Float, bounds b: (minX: Float, maxX: Float, minY: Float, maxY: Float), size: CGSize) -> CGFloat {
+    private func mapRadius(_ meters: Double, bounds b: (minX: Double, maxX: Double, minY: Double, maxY: Double), size: CGSize) -> CGFloat {
         let rangeX = max(0.001, b.maxX - b.minX)
         return CGFloat(meters / rangeX) * size.width
     }

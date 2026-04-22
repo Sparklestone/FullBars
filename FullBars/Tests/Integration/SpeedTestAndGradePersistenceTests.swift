@@ -37,7 +37,7 @@ final class SpeedTestAndGradePersistenceTests: XCTestCase {
         let session = UUID()
         for i in 0..<5 {
             context.insert(HeatmapPoint(
-                x: Float(i), y: 0, z: 0,
+                x: Double(i), y: 0, z: 0,
                 signalStrength: -60 - i,
                 latency: 20,
                 downloadSpeed: 100,

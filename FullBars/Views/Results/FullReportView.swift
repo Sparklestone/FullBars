@@ -566,6 +566,7 @@ private struct FullReportPDFContent: View {
                     room: room,
                     points: roomPoints,
                     weakSpotPoints: weakSpotPointsFor(room: room, points: roomPoints),
+                    weakSpots: CoveragePlanningService.detectWeakSpots(points: roomPoints),
                     devices: roomDevices,
                     doorways: roomDoorways,
                     showPainted: true

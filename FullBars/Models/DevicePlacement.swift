@@ -12,8 +12,8 @@ final class DevicePlacement {
     var createdAt: Date
 
     // Position within the room (room-local coordinates, meters)
-    var x: Float
-    var z: Float
+    var x: Double
+    var z: Double
 
     // Type
     var deviceTypeRaw: String             // DeviceType.rawValue
@@ -27,8 +27,8 @@ final class DevicePlacement {
         homeId: UUID,
         roomId: UUID,
         createdAt: Date = .now,
-        x: Float = 0,
-        z: Float = 0,
+        x: Double = 0,
+        z: Double = 0,
         deviceTypeRaw: String = DeviceType.router.rawValue,
         label: String? = nil,
         isPrimaryRouter: Bool = false
@@ -57,6 +57,9 @@ final class DevicePlacement {
 enum DeviceType: String, CaseIterable, Identifiable, Codable {
     case router = "router"
     case meshNode = "meshNode"
+    case computer = "computer"
+    case television = "television"
+    case tablet = "tablet"
 
     var id: String { rawValue }
 
@@ -64,6 +67,9 @@ enum DeviceType: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .router: return "Router"
         case .meshNode: return "Mesh Node"
+        case .computer: return "Computer"
+        case .television: return "Television"
+        case .tablet: return "Tablet"
         }
     }
 
@@ -71,6 +77,9 @@ enum DeviceType: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .router: return "wifi.router.fill"
         case .meshNode: return "dot.radiowaves.left.and.right"
+        case .computer: return "desktopcomputer"
+        case .television: return "tv.fill"
+        case .tablet: return "ipad"
         }
     }
 
@@ -78,6 +87,9 @@ enum DeviceType: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .router: return .cyan
         case .meshNode: return .purple
+        case .computer: return .blue
+        case .television: return .green
+        case .tablet: return .orange
         }
     }
 }

@@ -7,7 +7,7 @@ struct OnboardingView: View {
 
     // Setup fields
     @State private var selectedDwelling: DwellingType = .house
-    @State private var selectedSqFt: SquareFootageRange = .medium
+    @State private var selectedSqFt: SquareFootageRange = .sqft1800
     @State private var numberOfFloors: Int = 1
     @State private var numberOfPeople: Int = 2
     @State private var ispName: String = ""

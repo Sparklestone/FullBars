@@ -15,6 +15,10 @@ struct ResultsHomeView: View {
     @State private var presentingBadge = false
     @State private var presentingPaywall = false
     @State private var subs = SubscriptionManager.shared
+    @State private var roomToDelete: Room?
+    @State private var roomToRename: Room?
+    @State private var renameText: String = ""
+    @State private var showRenameAlert = false
 
     private var home: HomeConfiguration? { HomeSelection.activeHome(from: homes) }
     private var homeRooms: [Room] {
@@ -83,6 +87,36 @@ struct ResultsHomeView: View {
         }
         .sheet(isPresented: $presentingPaywall) {
             ProPaywallView()
+        }
+        .alert("Delete Room", isPresented: .init(
+            get: { roomToDelete != nil },
+            set: { if !$0 { roomToDelete = nil } }
+        )) {
+            Button("Cancel", role: .cancel) { roomToDelete = nil }
+            Button("Delete", role: .destructive) {
+                if let room = roomToDelete {
+                    modelContext.delete(room)
+                    try? modelContext.save()
+                    roomToDelete = nil
+                }
+            }
+        } message: {
+            if let room = roomToDelete {
+                Text("Delete \"\(room.displayName)\"? This cannot be undone.")
+            }
+        }
+        .alert("Rename Room", isPresented: $showRenameAlert) {
+            TextField("Room name", text: $renameText)
+            Button("Cancel", role: .cancel) { roomToRename = nil }
+            Button("Save") {
+                if let room = roomToRename {
+                    room.customName = renameText.isEmpty ? nil : renameText
+                    try? modelContext.save()
+                    roomToRename = nil
+                }
+            }
+        } message: {
+            Text("Enter a new name for this room.")
         }
     }
 
@@ -222,6 +256,20 @@ struct ResultsHomeView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier(AccessibilityID.Results.roomRow + ".\(room.displayName)")
+                .contextMenu {
+                    Button {
+                        renameText = room.customName ?? ""
+                        roomToRename = room
+                        showRenameAlert = true
+                    } label: {
+                        Label("Rename", systemImage: "pencil")
+                    }
+                    Button(role: .destructive) {
+                        roomToDelete = room
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                }
             }
         }
     }

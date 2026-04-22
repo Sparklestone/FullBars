@@ -5,9 +5,9 @@ import SwiftUI
 @Model
 final class HeatmapPoint {
     var id: UUID
-    var x: Float
-    var y: Float
-    var z: Float
+    var x: Double
+    var y: Double
+    var z: Double
     var signalStrength: Int
     var latency: Double
     var downloadSpeed: Double
@@ -20,9 +20,9 @@ final class HeatmapPoint {
 
     init(
         id: UUID = UUID(),
-        x: Float = 0,
-        y: Float = 0,
-        z: Float = 0,
+        x: Double = 0,
+        y: Double = 0,
+        z: Double = 0,
         signalStrength: Int = 0,
         latency: Double = 0,
         downloadSpeed: Double = 0,

@@ -521,11 +521,11 @@ struct MultiFloorWeakSpotView: View {
 
     // MARK: - Helpers
 
-    private func pointBounds(_ points: [HeatmapPoint]) -> (minX: Float, maxX: Float, minY: Float, maxY: Float) {
+    private func pointBounds(_ points: [HeatmapPoint]) -> (minX: Double, maxX: Double, minY: Double, maxY: Double) {
         guard !points.isEmpty else { return (0, 1, 0, 1) }
         let xs = points.map(\.x)
         let zs = points.map(\.z)
-        let padding: Float = 1.5
+        let padding: Double = 1.5
         return (
             (xs.min() ?? 0) - padding,
             (xs.max() ?? 0) + padding,
@@ -534,7 +534,7 @@ struct MultiFloorWeakSpotView: View {
         )
     }
 
-    private func mapToView(x: Float, y: Float, bounds b: (minX: Float, maxX: Float, minY: Float, maxY: Float), size: CGSize) -> CGPoint {
+    private func mapToView(x: Double, y: Double, bounds b: (minX: Double, maxX: Double, minY: Double, maxY: Double), size: CGSize) -> CGPoint {
         let rangeX = max(0.001, b.maxX - b.minX)
         let rangeY = max(0.001, b.maxY - b.minY)
         return CGPoint(

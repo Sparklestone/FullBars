@@ -6,7 +6,7 @@ import XCTest
 /// clustering logic is geometric and easy to silently break.
 final class CoveragePlanningServiceTests: XCTestCase {
 
-    private func point(signal: Int, x: Float, z: Float, floor: Int = 0, room: String? = nil) -> HeatmapPoint {
+    private func point(signal: Int, x: Double, z: Double, floor: Int = 0, room: String? = nil) -> HeatmapPoint {
         HeatmapPoint(x: x, y: 0, z: z, signalStrength: signal, latency: 30, downloadSpeed: 80, roomName: room, floorIndex: floor)
     }
 
@@ -23,14 +23,14 @@ final class CoveragePlanningServiceTests: XCTestCase {
     // MARK: - Weak-spot detection
 
     func testStrongSignalProducesNoWeakSpots() {
-        let pts = (0..<20).map { i in point(signal: -50, x: Float(i) * 1.0, z: 0) }
+        let pts = (0..<20).map { i in point(signal: -50, x: Double(i) * 1.0, z: 0) }
         let r = CoveragePlanningService.analyze(points: pts)
         XCTAssertTrue(r.weakSpots.isEmpty)
     }
 
     func testCriticalWeakSpotDetected() {
         // Cluster of very-weak points in one corner.
-        let weak = (0..<6).map { i in point(signal: -90, x: Float(i) * 0.3, z: 0.2) }
+        let weak = (0..<6).map { i in point(signal: -90, x: Double(i) * 0.3, z: 0.2) }
         let strong = (0..<10).map { i in point(signal: -50, x: 15 + Float(i), z: 15) }
         let r = CoveragePlanningService.analyze(points: weak + strong)
         XCTAssertFalse(r.weakSpots.isEmpty, "Expected a weak spot from weak cluster")
@@ -54,14 +54,14 @@ final class CoveragePlanningServiceTests: XCTestCase {
 
     func testFarApartWeakPointsProduceMultipleSpots() {
         // Two clusters separated by > clusterRadius should produce two spots.
-        let a = (0..<3).map { i in point(signal: -90, x: Float(i) * 0.2, z: 0.1) }
+        let a = (0..<3).map { i in point(signal: -90, x: Double(i) * 0.2, z: 0.1) }
         let b = (0..<3).map { i in point(signal: -90, x: 20 + Float(i) * 0.2, z: 20) }
         let spots = CoveragePlanningService.detectWeakSpots(points: a + b)
         XCTAssertGreaterThanOrEqual(spots.count, 2)
     }
 
     func testWeakSpotCarriesRoomNameWhenAvailable() {
-        let pts = (0..<4).map { i in point(signal: -88, x: Float(i) * 0.2, z: 0, room: "Basement") }
+        let pts = (0..<4).map { i in point(signal: -88, x: Double(i) * 0.2, z: 0, room: "Basement") }
         let spots = CoveragePlanningService.detectWeakSpots(points: pts)
         XCTAssertEqual(spots.first?.roomName, "Basement")
     }
@@ -76,8 +76,8 @@ final class CoveragePlanningServiceTests: XCTestCase {
 
     func testCoveragePercentageHalfBad() {
         // 10 good, 10 dead → ~50%
-        let good = (0..<10).map { i in point(signal: -55, x: Float(i), z: 0) }
-        let dead = (0..<10).map { i in point(signal: -90, x: Float(i) + 50, z: 50) }
+        let good = (0..<10).map { i in point(signal: -55, x: Double(i), z: 0) }
+        let dead = (0..<10).map { i in point(signal: -90, x: Double(i) + 50, z: 50) }
         let r = CoveragePlanningService.analyze(points: good + dead)
         XCTAssertLessThan(r.coveragePercentage, 80)
         XCTAssertGreaterThan(r.coveragePercentage, 20)

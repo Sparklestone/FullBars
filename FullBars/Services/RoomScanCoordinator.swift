@@ -80,7 +80,7 @@ final class RoomScanCoordinator {
     var paintedCells: Set<GridCell> = []
 
     /// Grid resolution in meters (0.5m default = 50cm tiles).
-    let gridResolution: Float = 0.5
+    let gridResolution: Double = 0.5
 
     /// Signal samples captured during the walk.
     struct Sample: Identifiable {
@@ -144,8 +144,8 @@ final class RoomScanCoordinator {
     var paintedCoverageFraction: Double {
         let area = estimatedRoomArea
         guard area > 0 else { return 0 }
-        let paintedArea = Float(paintedCells.count) * gridResolution * gridResolution
-        return Double(min(1.0, paintedArea / area))
+        let paintedArea = Double(paintedCells.count) * gridResolution * gridResolution
+        return min(1.0, paintedArea / Double(area))
     }
 
     /// How much coverage we need before Room Complete unlocks.
@@ -415,8 +415,8 @@ final class RoomScanCoordinator {
         for d in doorways {
             let doorway = Doorway(
                 roomId: roomId,
-                x: d.position.x,
-                z: d.position.y,
+                x: Double(d.position.x),
+                z: Double(d.position.y),
                 connectsToRoomId: d.connectsToRoomId,
                 connectsToOutside: d.connectsToOutside,
                 connectsToUnknownRoom: d.connectsToUnknownRoom,
@@ -432,8 +432,8 @@ final class RoomScanCoordinator {
             let placement = DevicePlacement(
                 homeId: homeId,
                 roomId: roomId,
-                x: dev.position.x,
-                z: dev.position.y,
+                x: Double(dev.position.x),
+                z: Double(dev.position.y),
                 deviceTypeRaw: dev.deviceTypeRaw,
                 label: dev.label,
                 isPrimaryRouter: dev.isPrimaryRouter
@@ -444,9 +444,9 @@ final class RoomScanCoordinator {
         // Heatmap points
         for s in samples {
             let point = HeatmapPoint(
-                x: s.position.x,
+                x: Double(s.position.x),
                 y: 0,
-                z: s.position.y,
+                z: Double(s.position.y),
                 signalStrength: s.signalStrength,
                 latency: s.latency,
                 downloadSpeed: s.downloadSpeed,
@@ -551,13 +551,13 @@ final class RoomScanCoordinator {
 
         // Paint a small disk around the current position (accounts for the fact
         // that the user is standing in roughly a 30cm bubble, not a point).
-        let radius: Float = 0.30
+        let radius: Double = 0.30
         let cellRadius = Int(ceil(radius / gridResolution))
-        let cx = Int((position.x / gridResolution).rounded())
-        let cz = Int((position.y / gridResolution).rounded())
+        let cx = Int((Double(position.x) / gridResolution).rounded())
+        let cz = Int((Double(position.y) / gridResolution).rounded())
         for dx in -cellRadius...cellRadius {
             for dz in -cellRadius...cellRadius {
-                let dist = sqrt(Float(dx * dx + dz * dz)) * gridResolution
+                let dist = sqrt(Double(dx * dx + dz * dz)) * gridResolution
                 if dist <= radius {
                     paintedCells.insert(GridCell(x: cx + dx, z: cz + dz))
                 }

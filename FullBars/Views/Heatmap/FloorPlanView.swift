@@ -15,11 +15,11 @@ struct FloorPlanView: View {
     private let electricCyan = FullBars.Design.Colors.accentCyan
 
     // Compute bounds from all points
-    private var bounds: (minX: Float, maxX: Float, minY: Float, maxY: Float) {
+    private var bounds: (minX: Double, maxX: Double, minY: Double, maxY: Double) {
         guard !points.isEmpty else { return (0, 1, 0, 1) }
         let xs = points.map(\.x)
         let ys = points.map(\.z) // Use z for top-down view
-        let padding: Float = 1.0
+        let padding: Double = 1.0
         return (
             (xs.min() ?? 0) - padding,
             (xs.max() ?? 0) + padding,
@@ -56,11 +56,11 @@ struct FloorPlanView: View {
                     // Walls
                     ForEach(walls) { wall in
                         let start = mapToView(
-                            x: Float(wall.start.x), y: Float(wall.start.y),
+                            x: Double(wall.start.x), y: Double(wall.start.y),
                             bounds: b, size: CGSize(width: width, height: height)
                         )
                         let end = mapToView(
-                            x: Float(wall.end.x), y: Float(wall.end.y),
+                            x: Double(wall.end.x), y: Double(wall.end.y),
                             bounds: b, size: CGSize(width: width, height: height)
                         )
 
@@ -102,7 +102,7 @@ struct FloorPlanView: View {
 
     // MARK: - Drawing Helpers
 
-    private func mapToView(x: Float, y: Float, bounds b: (minX: Float, maxX: Float, minY: Float, maxY: Float), size: CGSize) -> CGPoint {
+    private func mapToView(x: Double, y: Double, bounds b: (minX: Double, maxX: Double, minY: Double, maxY: Double), size: CGSize) -> CGPoint {
         let rangeX = b.maxX - b.minX
         let rangeY = b.maxY - b.minY
         let normalizedX = CGFloat((x - b.minX) / rangeX) * size.width
@@ -126,7 +126,7 @@ struct FloorPlanView: View {
         }
     }
 
-    private func drawHeatmapGradient(context: GraphicsContext, size: CGSize, bounds b: (minX: Float, maxX: Float, minY: Float, maxY: Float)) {
+    private func drawHeatmapGradient(context: GraphicsContext, size: CGSize, bounds b: (minX: Double, maxX: Double, minY: Double, maxY: Double)) {
         // Simple point-based radial gradient heatmap
         for point in points {
             let pos = mapToView(x: point.x, y: point.z, bounds: b, size: size)

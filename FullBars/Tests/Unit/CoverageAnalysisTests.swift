@@ -6,7 +6,7 @@ import XCTest
 /// raw weak-spot detection.
 final class CoverageAnalysisTests: XCTestCase {
 
-    private func point(signal: Int, x: Float = 0, z: Float = 0, floor: Int = 0, room: String? = nil, latency: Double = 20, download: Double = 80) -> HeatmapPoint {
+    private func point(signal: Int, x: Double = 0, z: Double = 0, floor: Int = 0, room: String? = nil, latency: Double = 20, download: Double = 80) -> HeatmapPoint {
         HeatmapPoint(x: x, y: 0, z: z, signalStrength: signal, latency: latency, downloadSpeed: download, roomName: room, floorIndex: floor)
     }
 
@@ -64,7 +64,7 @@ final class CoverageAnalysisTests: XCTestCase {
     // MARK: - Floor summaries
 
     func testFloorSummariesSingleFloor() {
-        let pts = (0..<10).map { i in point(signal: -55, x: Float(i), floor: 0) }
+        let pts = (0..<10).map { i in point(signal: -55, x: Double(i), floor: 0) }
         let summaries = CoveragePlanningService.floorSummaries(points: pts)
         XCTAssertEqual(summaries.count, 1)
         XCTAssertEqual(summaries.first?.floorLabel, "Ground Floor")
@@ -73,8 +73,8 @@ final class CoverageAnalysisTests: XCTestCase {
 
     func testFloorSummariesMultipleFloors() {
         var pts: [HeatmapPoint] = []
-        pts += (0..<5).map { i in point(signal: -55, x: Float(i), floor: 0) }
-        pts += (0..<5).map { i in point(signal: -80, x: Float(i), floor: 1) }
+        pts += (0..<5).map { i in point(signal: -55, x: Double(i), floor: 0) }
+        pts += (0..<5).map { i in point(signal: -80, x: Double(i), floor: 1) }
         let summaries = CoveragePlanningService.floorSummaries(points: pts)
         XCTAssertEqual(summaries.count, 2)
         XCTAssertTrue(summaries[0].coveragePercentage > summaries[1].coveragePercentage)

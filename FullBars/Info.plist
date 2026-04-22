@@ -17,7 +17,7 @@
 	<key>CFBundleShortVersionString</key>
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
-	<string>202604200829</string>
+	<string>202604201101</string>
 	<key>NSCameraUsageDescription</key>
 	<string>FullBars uses the camera for AR-based room scanning to map your Wi-Fi coverage.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>

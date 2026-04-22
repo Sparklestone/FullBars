@@ -13,8 +13,8 @@ final class CoveragePlanningService {
     private static let weakSpotSevereThreshold: Int = -80
     private static let weakSpotModerateThreshold: Int = -75
     private static let goodSignalThreshold: Int = -65
-    private static let clusterRadiusMeters: Float = 2.5   // group nearby weak points
-    private static let meshCoverageRadius: Float = 8.0     // typical mesh node reach
+    private static let clusterRadiusMeters: Double = 2.5   // group nearby weak points
+    private static let meshCoverageRadius: Double = 8.0     // typical mesh node reach
 
     // MARK: - Full Analysis
 
@@ -88,12 +88,12 @@ final class CoveragePlanningService {
                 }
 
                 // Calculate cluster center and severity
-                let avgX = cluster.map { $0.x }.reduce(0, +) / Float(cluster.count)
-                let avgZ = cluster.map { $0.z }.reduce(0, +) / Float(cluster.count)
+                let avgX = cluster.map { $0.x }.reduce(0, +) / Double(cluster.count)
+                let avgZ = cluster.map { $0.z }.reduce(0, +) / Double(cluster.count)
                 let avgSignal = cluster.map { $0.signalStrength }.reduce(0, +) / cluster.count
 
                 // Determine radius from point spread
-                let maxDist = cluster.map { p -> Float in
+                let maxDist = cluster.map { p -> Double in
                     let dx = p.x - avgX
                     let dz = p.z - avgZ
                     return sqrt(dx * dx + dz * dz)
@@ -140,12 +140,12 @@ final class CoveragePlanningService {
         guard !topPoints.isEmpty else { return nil }
 
         // Weighted centroid — stronger signals count more
-        var weightedX: Float = 0
-        var weightedZ: Float = 0
-        var totalWeight: Float = 0
+        var weightedX: Double = 0
+        var weightedZ: Double = 0
+        var totalWeight: Double = 0
 
         for point in topPoints {
-            let weight = Float(max(1, point.signalStrength + 100)) // shift to positive
+            let weight = Double(max(1, point.signalStrength + 100)) // shift to positive
             weightedX += point.x * weight
             weightedZ += point.z * weight
             totalWeight += weight
@@ -169,29 +169,29 @@ final class CoveragePlanningService {
         // If we have a router estimate, include it
         if let router = routerPosition {
             recommendations.append(MeshPlacementRecommendation(
-                x: Float(router.x),
-                z: Float(router.y),
+                x: Double(router.x),
+                z: Double(router.y),
                 floorIndex: 0,
                 type: .primaryRouter,
                 priority: 0,
                 reason: "Estimated current router position based on signal strength pattern",
                 expectedImpact: "This is where your router appears to be",
-                nearestRoomName: findNearestRoom(x: Float(router.x), z: Float(router.y), points: points)
+                nearestRoomName: findNearestRoom(x: Double(router.x), z: Double(router.y), points: points)
             ))
         }
 
         // For each weak spot, recommend placement between router and weak spot
         for weakSpot in weakSpots {
-            let wsPoint = CGPoint(x: CGFloat(weakSpot.centerX), y: CGFloat(weakSpot.centerZ))
+            let wsPoint = CGPoint(x: weakSpot.centerX, y: weakSpot.centerZ)
 
             // Place mesh node at ~60% of the way from router to weak spot
             // (closer to weak spot, but still within range of router)
-            let meshX: Float
-            let meshZ: Float
+            let meshX: Double
+            let meshZ: Double
 
             if let router = routerPosition {
-                meshX = Float(router.x + (wsPoint.x - router.x) * 0.6)
-                meshZ = Float(router.y + (wsPoint.y - router.y) * 0.6)
+                meshX = Double(router.x + (wsPoint.x - router.x) * 0.6)
+                meshZ = Double(router.y + (wsPoint.y - router.y) * 0.6)
             } else {
                 // Without router estimate, place near the weak spot edge
                 meshX = weakSpot.centerX
@@ -242,7 +242,7 @@ final class CoveragePlanningService {
                 let q3Points = floorPoints.filter { $0.x < midX && $0.z >= midZ }
                 let q4Points = floorPoints.filter { $0.x >= midX && $0.z >= midZ }
 
-                var quadrants: [(Float, Float, [HeatmapPoint])] = []
+                var quadrants: [(Double, Double, [HeatmapPoint])] = []
                 quadrants.append((bounds.minX + rangeX * 0.25, bounds.minZ + rangeZ * 0.25, q1Points))
                 quadrants.append((bounds.minX + rangeX * 0.75, bounds.minZ + rangeZ * 0.25, q2Points))
                 quadrants.append((bounds.minX + rangeX * 0.25, bounds.minZ + rangeZ * 0.75, q3Points))
@@ -319,9 +319,9 @@ final class CoveragePlanningService {
                     return true
                 }
 
-                let avgX = cluster.map { $0.x }.reduce(0, +) / Float(cluster.count)
-                let avgZ = cluster.map { $0.z }.reduce(0, +) / Float(cluster.count)
-                let maxDist = cluster.map { p -> Float in
+                let avgX = cluster.map { $0.x }.reduce(0, +) / Double(cluster.count)
+                let avgZ = cluster.map { $0.z }.reduce(0, +) / Double(cluster.count)
+                let maxDist = cluster.map { p -> Double in
                     let dx = p.x - avgX; let dz = p.z - avgZ
                     return sqrt(dx * dx + dz * dz)
                 }.max() ?? 1.0
@@ -498,9 +498,9 @@ final class CoveragePlanningService {
         }
     }
 
-    private static func findNearestRoom(x: Float, z: Float, points: [HeatmapPoint]) -> String? {
+    private static func findNearestRoom(x: Double, z: Double, points: [HeatmapPoint]) -> String? {
         points
-            .compactMap { p -> (String, Float)? in
+            .compactMap { p -> (String, Double)? in
                 guard let name = p.roomName else { return nil }
                 let dx = p.x - x; let dz = p.z - z
                 return (name, sqrt(dx * dx + dz * dz))
@@ -509,7 +509,7 @@ final class CoveragePlanningService {
             .0
     }
 
-    private static func calculateBounds(points: [HeatmapPoint]) -> (minX: Float, maxX: Float, minZ: Float, maxZ: Float) {
+    private static func calculateBounds(points: [HeatmapPoint]) -> (minX: Double, maxX: Double, minZ: Double, maxZ: Double) {
         guard !points.isEmpty else { return (0, 1, 0, 1) }
         let xs = points.map { $0.x }
         let zs = points.map { $0.z }

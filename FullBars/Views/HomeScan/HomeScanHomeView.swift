@@ -15,6 +15,10 @@ struct HomeScanHomeView: View {
     private let bg = Color(red: 0.05, green: 0.05, blue: 0.10)
 
     @State private var subs = SubscriptionManager.shared
+    @State private var roomToDelete: Room?
+    @State private var roomToRename: Room?
+    @State private var renameText: String = ""
+    @State private var showRenameAlert = false
     private var home: HomeConfiguration? { HomeSelection.activeHome(from: homes) }
 
     // Only show rooms for the active home — deduped for free users.
@@ -56,6 +60,36 @@ struct HomeScanHomeView: View {
         }
         .fullScreenCover(isPresented: $presentingNewRoom) {
             RoomScanView()
+        }
+        .alert("Delete Room", isPresented: .init(
+            get: { roomToDelete != nil },
+            set: { if !$0 { roomToDelete = nil } }
+        )) {
+            Button("Cancel", role: .cancel) { roomToDelete = nil }
+            Button("Delete", role: .destructive) {
+                if let room = roomToDelete {
+                    modelContext.delete(room)
+                    try? modelContext.save()
+                    roomToDelete = nil
+                }
+            }
+        } message: {
+            if let room = roomToDelete {
+                Text("Delete \"\(room.displayName)\"? This cannot be undone.")
+            }
+        }
+        .alert("Rename Room", isPresented: $showRenameAlert) {
+            TextField("Room name", text: $renameText)
+            Button("Cancel", role: .cancel) { roomToRename = nil }
+            Button("Save") {
+                if let room = roomToRename {
+                    room.customName = renameText.isEmpty ? nil : renameText
+                    try? modelContext.save()
+                    roomToRename = nil
+                }
+            }
+        } message: {
+            Text("Enter a new name for this room.")
         }
         .preferredColorScheme(.dark)
     }
@@ -176,6 +210,20 @@ struct HomeScanHomeView: View {
 
             ForEach(homeRooms) { room in
                 roomCard(room)
+                    .contextMenu {
+                        Button {
+                            renameText = room.customName ?? ""
+                            roomToRename = room
+                            showRenameAlert = true
+                        } label: {
+                            Label("Rename", systemImage: "pencil")
+                        }
+                        Button(role: .destructive) {
+                            roomToDelete = room
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
             }
 
             Button {

@@ -17,12 +17,12 @@ final class Room {
     var floorIndex: Int                   // 0-based; references HomeConfiguration.floorLabels
 
     // Shape — polygon of corner points in room-local coordinates (meters)
-    var cornersJSON: String               // JSON-encoded [[Float, Float]] representing (x, z) tuples
+    var cornersJSON: String               // JSON-encoded [[Double, Double]] representing (x, z) tuples
 
     // Painted coverage — grid cells that the user walked through. Used to show
     // which areas were actually scanned vs gaps (furniture/obstacles).
     var paintedCellsJSON: String          // JSON-encoded [[Int, Int]] (grid indices)
-    var paintGridResolutionMeters: Float  // Cell size (default 0.5m = 0.5m × 0.5m tiles)
+    var paintGridResolutionMeters: Double  // Cell size (default 0.5m = 0.5m × 0.5m tiles)
 
     // Speed test result for this room (single stationary test at room start)
     var downloadMbps: Double
@@ -35,6 +35,9 @@ final class Room {
 
     // Session identifier — ties HeatmapPoints to this specific room scan
     var sessionId: UUID
+
+    // Compass heading captured at walk start (degrees, 0-360)
+    var compassHeading: Double
 
     // Analysis cache — so we don't recompute every time the view opens
     var gradeScore: Double                // 0-100
@@ -53,13 +56,14 @@ final class Room {
         floorIndex: Int = 0,
         cornersJSON: String = "[]",
         paintedCellsJSON: String = "[]",
-        paintGridResolutionMeters: Float = 0.5,
+        paintGridResolutionMeters: Double = 0.5,
         downloadMbps: Double = 0,
         uploadMbps: Double = 0,
         pingMs: Double = 0,
         speedTestAt: Date? = nil,
         bleDeviceCount: Int = 0,
         sessionId: UUID = UUID(),
+        compassHeading: Double = 0,
         gradeScore: Double = 0,
         gradeLetterRaw: String = "",
         deadZoneCount: Int = 0,
@@ -82,6 +86,7 @@ final class Room {
         self.speedTestAt = speedTestAt
         self.bleDeviceCount = bleDeviceCount
         self.sessionId = sessionId
+        self.compassHeading = compassHeading
         self.gradeScore = gradeScore
         self.gradeLetterRaw = gradeLetterRaw
         self.deadZoneCount = deadZoneCount
@@ -102,10 +107,10 @@ final class Room {
         return roomType.label
     }
 
-    var corners: [(Float, Float)] {
+    var corners: [(Double, Double)] {
         get {
             guard let data = cornersJSON.data(using: .utf8),
-                  let arr = try? JSONDecoder().decode([[Float]].self, from: data) else {
+                  let arr = try? JSONDecoder().decode([[Double]].self, from: data) else {
                 return []
             }
             return arr.compactMap { $0.count >= 2 ? ($0[0], $0[1]) : nil }
@@ -137,10 +142,10 @@ final class Room {
     }
 
     /// Approximate floor area in square meters from the corner polygon (shoelace formula)
-    var approximateAreaSquareMeters: Float {
+    var approximateAreaSquareMeters: Double {
         let pts = corners
         guard pts.count >= 3 else { return 0 }
-        var sum: Float = 0
+        var sum: Double = 0
         for i in 0..<pts.count {
             let j = (i + 1) % pts.count
             sum += pts[i].0 * pts[j].1
@@ -154,8 +159,8 @@ final class Room {
     var paintedCoverageFraction: Double {
         let area = approximateAreaSquareMeters
         guard area > 0 else { return 0 }
-        let paintedArea = Float(paintedCells.count) * paintGridResolutionMeters * paintGridResolutionMeters
-        return min(1.0, Double(paintedArea / area))
+        let paintedArea = Double(paintedCells.count) * paintGridResolutionMeters * paintGridResolutionMeters
+        return min(1.0, paintedArea / area)
     }
 }
 

@@ -28,19 +28,41 @@ enum DwellingType: String, CaseIterable, Codable {
 // MARK: - Square Footage Range
 
 enum SquareFootageRange: String, CaseIterable, Codable {
-    case small = "Under 800 sq ft"
-    case medium = "800 - 1,500 sq ft"
-    case large = "1,500 - 2,500 sq ft"
-    case veryLarge = "2,500 - 4,000 sq ft"
-    case huge = "4,000+ sq ft"
+    case under600  = "Under 600 sq ft"
+    case sqft600   = "600+ sq ft"
+    case sqft1200  = "1,200+ sq ft"
+    case sqft1800  = "1,800+ sq ft"
+    case sqft2400  = "2,400+ sq ft"
+    case sqft3000  = "3,000+ sq ft"
+    case sqft3600  = "3,600+ sq ft"
+    case sqft4200  = "4,200+ sq ft"
+    case sqft4800  = "4,800+ sq ft"
+    case sqft5400  = "5,400+ sq ft"
+    case sqft6000  = "6,000+ sq ft"
+    case sqft6600  = "6,600+ sq ft"
+    case sqft7200  = "7,200+ sq ft"
+    case sqft7800  = "7,800+ sq ft"
+    case sqft8400  = "8,400+ sq ft"
+    case sqft9000  = "9,000+ sq ft"
 
     var midpoint: Int {
         switch self {
-        case .small: return 600
-        case .medium: return 1150
-        case .large: return 2000
-        case .veryLarge: return 3250
-        case .huge: return 5000
+        case .under600:  return 400
+        case .sqft600:   return 900
+        case .sqft1200:  return 1500
+        case .sqft1800:  return 2100
+        case .sqft2400:  return 2700
+        case .sqft3000:  return 3300
+        case .sqft3600:  return 3900
+        case .sqft4200:  return 4500
+        case .sqft4800:  return 5100
+        case .sqft5400:  return 5700
+        case .sqft6000:  return 6300
+        case .sqft6600:  return 6900
+        case .sqft7200:  return 7500
+        case .sqft7800:  return 8100
+        case .sqft8400:  return 8700
+        case .sqft9000:  return 9300
         }
     }
 }
@@ -60,8 +82,8 @@ final class UserProfile {
 
     var squareFootage: SquareFootageRange {
         get {
-            guard let raw = defaults.string(forKey: "squareFootage") else { return .medium }
-            return SquareFootageRange(rawValue: raw) ?? .medium
+            guard let raw = defaults.string(forKey: "squareFootage") else { return .sqft1800 }
+            return SquareFootageRange(rawValue: raw) ?? .sqft1800
         }
         set { defaults.set(newValue.rawValue, forKey: "squareFootage") }
     }

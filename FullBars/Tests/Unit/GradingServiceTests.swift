@@ -8,7 +8,7 @@ final class GradingServiceTests: XCTestCase {
 
     // MARK: - Helpers
 
-    private func point(signal: Int, latency: Double = 30, download: Double = 100, floor: Int = 0, x: Float = 0, z: Float = 0) -> HeatmapPoint {
+    private func point(signal: Int, latency: Double = 30, download: Double = 100, floor: Int = 0, x: Double = 0, z: Double = 0) -> HeatmapPoint {
         HeatmapPoint(
             x: x, y: 0, z: z,
             signalStrength: signal,
@@ -41,7 +41,7 @@ final class GradingServiceTests: XCTestCase {
 
     func testAllDeadSignalCrushesScore() {
         // All points -95 dBm — weak spot penalty should apply.
-        let pts = (0..<20).map { i in point(signal: -95, x: Float(i) * 0.2, z: 0) }
+        let pts = (0..<20).map { i in point(signal: -95, x: Double(i) * 0.2, z: 0) }
         let g = GradingService.grade(points: pts, sessionId: session, durationSeconds: 60)
         XCTAssertLessThan(g.signalCoverageScore, 20)
         // Overall drops to a failing grade (D or worse) even though other

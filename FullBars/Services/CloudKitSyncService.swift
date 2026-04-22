@@ -344,7 +344,7 @@ final class CloudKitSyncService {
             floorIndex: record["floorIndex"] as? Int ?? 0,
             cornersJSON: record["cornersJSON"] as? String ?? "[]",
             paintedCellsJSON: record["paintedCellsJSON"] as? String ?? "[]",
-            paintGridResolutionMeters: Float(record["paintGridResolutionMeters"] as? Double ?? 0.5),
+            paintGridResolutionMeters: record["paintGridResolutionMeters"] as? Double ?? 0.5,
             downloadMbps: record["downloadMbps"] as? Double ?? 0,
             uploadMbps: record["uploadMbps"] as? Double ?? 0,
             pingMs: record["pingMs"] as? Double ?? 0,
@@ -379,8 +379,8 @@ final class CloudKitSyncService {
             id: UUID(uuidString: record.recordID.recordName) ?? UUID(),
             homeId: UUID(uuidString: record["homeId"] as? String ?? "") ?? UUID(),
             roomId: UUID(uuidString: record["roomId"] as? String ?? "") ?? UUID(),
-            x: Float(record["x"] as? Double ?? 0),
-            z: Float(record["z"] as? Double ?? 0),
+            x: record["x"] as? Double ?? 0,
+            z: record["z"] as? Double ?? 0,
             deviceTypeRaw: record["deviceTypeRaw"] as? String ?? "router",
             label: record["label"] as? String,
             isPrimaryRouter: (record["isPrimaryRouter"] as? Int ?? 0) == 1
@@ -406,8 +406,8 @@ final class CloudKitSyncService {
         Doorway(
             id: UUID(uuidString: record.recordID.recordName) ?? UUID(),
             roomId: UUID(uuidString: record["roomId"] as? String ?? "") ?? UUID(),
-            x: Float(record["x"] as? Double ?? 0),
-            z: Float(record["z"] as? Double ?? 0),
+            x: record["x"] as? Double ?? 0,
+            z: record["z"] as? Double ?? 0,
             connectsToRoomId: (record["connectsToRoomId"] as? String).flatMap(UUID.init),
             connectsToOutside: (record["connectsToOutside"] as? Int ?? 0) == 1,
             connectsToUnknownRoom: (record["connectsToUnknownRoom"] as? Int ?? 0) == 1,
@@ -437,9 +437,9 @@ final class CloudKitSyncService {
     private func recordToHeatmapPoint(_ record: CKRecord) -> HeatmapPoint {
         HeatmapPoint(
             id: UUID(uuidString: record.recordID.recordName) ?? UUID(),
-            x: Float(record["x"] as? Double ?? 0),
-            y: Float(record["y"] as? Double ?? 0),
-            z: Float(record["z"] as? Double ?? 0),
+            x: record["x"] as? Double ?? 0,
+            y: record["y"] as? Double ?? 0,
+            z: record["z"] as? Double ?? 0,
             signalStrength: record["signalStrength"] as? Int ?? -70,
             latency: record["latency"] as? Double ?? 0,
             downloadSpeed: record["downloadSpeed"] as? Double ?? 0,

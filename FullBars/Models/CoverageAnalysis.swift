@@ -6,16 +6,16 @@ import SwiftUI
 /// A spatial region with critically weak or no WiFi signal.
 struct WeakSpot: Identifiable {
     let id = UUID()
-    let centerX: Float
-    let centerZ: Float
-    let radius: Float          // estimated coverage radius in meters
+    let centerX: Double
+    let centerZ: Double
+    let radius: Double          // estimated coverage radius in meters
     let floorIndex: Int
     let averageSignal: Int     // dBm
     let pointCount: Int
     let roomName: String?
     let severity: WeakSpotSeverity
 
-    var center: CGPoint { CGPoint(x: CGFloat(centerX), y: CGFloat(centerZ)) }
+    var center: CGPoint { CGPoint(x: centerX, y: centerZ) }
 }
 
 enum WeakSpotSeverity: String, CaseIterable {
@@ -61,8 +61,8 @@ enum WeakSpotSeverity: String, CaseIterable {
 /// A recommended position for a WiFi router, mesh node, or extender.
 struct MeshPlacementRecommendation: Identifiable {
     let id = UUID()
-    let x: Float
-    let z: Float
+    let x: Double
+    let z: Double
     let floorIndex: Int
     let type: PlacementType
     let priority: Int           // 1 = highest priority
@@ -70,7 +70,7 @@ struct MeshPlacementRecommendation: Identifiable {
     let expectedImpact: String  // e.g. "Eliminates weak spot in Bedroom"
     let nearestRoomName: String?
 
-    var position: CGPoint { CGPoint(x: CGFloat(x), y: CGFloat(z)) }
+    var position: CGPoint { CGPoint(x: x, y: z) }
 }
 
 enum PlacementType: String, CaseIterable {
@@ -108,9 +108,9 @@ enum PlacementType: String, CaseIterable {
 /// A region with high BLE or co-channel interference.
 struct InterferenceZone: Identifiable {
     let id = UUID()
-    let centerX: Float
-    let centerZ: Float
-    let radius: Float
+    let centerX: Double
+    let centerZ: Double
+    let radius: Double
     let floorIndex: Int
     let interferenceLevel: InterferenceLevel
     let likelySources: [String]

@@ -25,6 +25,9 @@ struct OnboardingFlow: View {
     @State private var numberOfPeople: Int = 2
     @State private var hasMeshNetwork: Bool = false
     @State private var meshNodeCount: Int = 0
+    @State private var addressText: String = ""
+    @State private var addressSuggestions: [String] = []
+    @State private var selectedSquareFootage: SquareFootageRange = .sqft1800
     @State private var ispName: String = ""
     @State private var ispDownloadText: String = ""
     @State private var ispUploadText: String = ""
@@ -147,6 +150,23 @@ struct OnboardingFlow: View {
                    title: "What type of home?",
                    subtitle: "Helps us calibrate expectations for coverage and speed.")
 
+            // Address input
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Address (optional)")
+                    .font(.system(.caption, design: .rounded))
+                    .foregroundStyle(.secondary)
+                TextField("123 Main St", text: $addressText)
+                    .textFieldStyle(.plain)
+                    .font(.system(size: 16, design: .rounded))
+                    .foregroundStyle(.white)
+                    .padding(12)
+                    .background(Color.white.opacity(0.05))
+                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.white.opacity(0.12), lineWidth: 1))
+                    .cornerRadius(10)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.words)
+            }
+
             LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                 ForEach(DwellingType.allCases, id: \.self) { type in
                     selectionCard(
@@ -169,38 +189,15 @@ struct OnboardingFlow: View {
                    title: "How big is your home?",
                    subtitle: "Approximate square footage. Check your listing or assessor's record if you're not sure.")
 
-            VStack(spacing: 12) {
-                HStack {
-                    Text("Square feet")
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    TextField("1500", text: $squareFootageText)
-                        .keyboardType(.numberPad)
-                        .multilineTextAlignment(.trailing)
-                        .font(.system(size: 22, weight: .bold, design: .rounded))
-                        .foregroundStyle(cyan)
-                        .frame(width: 120)
-                }
-                .padding(16)
-                .background(Color.white.opacity(0.05))
-                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.12), lineWidth: 1))
-                .cornerRadius(12)
-
-                // Quick chips
-                HStack(spacing: 8) {
-                    ForEach([800, 1200, 1800, 2500, 3500], id: \.self) { v in
-                        Button("\(v)") {
-                            squareFootageText = "\(v)"
-                        }
-                        .font(.system(.caption, design: .rounded).weight(.semibold))
-                        .foregroundStyle(.white.opacity(0.8))
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(Color.white.opacity(0.08))
-                        .cornerRadius(8)
-                    }
+            Picker("Square footage", selection: $selectedSquareFootage) {
+                ForEach(SquareFootageRange.allCases, id: \.self) { range in
+                    Text(range.rawValue)
+                        .tag(range)
                 }
             }
+            .pickerStyle(.wheel)
+            .frame(height: 150)
+            .clipped()
         }
     }
 
@@ -579,7 +576,7 @@ struct OnboardingFlow: View {
                 .foregroundStyle(.white)
 
             VStack(spacing: 6) {
-                summaryRow("Home", "\(dwellingType.rawValue), \(squareFootageText) sq ft")
+                summaryRow("Home", "\(dwellingType.rawValue), \(selectedSquareFootage.rawValue)")
                 summaryRow("Floors", numberOfFloors == 1 ? floorLabels.first ?? "Main" : floorLabels.joined(separator: " · "))
                 summaryRow("People", "\(numberOfPeople)")
                 if hasMeshNetwork {
@@ -648,8 +645,7 @@ struct OnboardingFlow: View {
     private var canAdvance: Bool {
         switch step {
         case .size:
-            let n = Int(squareFootageText) ?? 0
-            return n >= 100 && n <= 50000
+            return true  // Picker always has a valid selection
         case .permissions:
             return allPermissionsGranted
         default:
@@ -679,7 +675,7 @@ struct OnboardingFlow: View {
 
         let encoded = (try? JSONEncoder().encode(floorLabels)).flatMap { String(data: $0, encoding: .utf8) } ?? "[\"Main\"]"
 
-        let sqft = Int(squareFootageText) ?? 1500
+        let sqft = selectedSquareFootage.midpoint
         let dl = Double(ispDownloadText) ?? 0
         let ul = Double(ispUploadText) ?? 0
 
@@ -720,11 +716,22 @@ struct OnboardingFlow: View {
 
     private func squareFootageBucket(from sqft: Int) -> SquareFootageRange {
         switch sqft {
-        case ..<800: return .small
-        case ..<1500: return .medium
-        case ..<2500: return .large
-        case ..<4000: return .veryLarge
-        default: return .huge
+        case ..<600:  return .under600
+        case ..<1200: return .sqft600
+        case ..<1800: return .sqft1200
+        case ..<2400: return .sqft1800
+        case ..<3000: return .sqft2400
+        case ..<3600: return .sqft3000
+        case ..<4200: return .sqft3600
+        case ..<4800: return .sqft4200
+        case ..<5400: return .sqft4800
+        case ..<6000: return .sqft5400
+        case ..<6600: return .sqft6000
+        case ..<7200: return .sqft6600
+        case ..<7800: return .sqft7200
+        case ..<8400: return .sqft7800
+        case ..<9000: return .sqft8400
+        default:      return .sqft9000
         }
     }
 

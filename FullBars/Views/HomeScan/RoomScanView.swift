@@ -1015,9 +1015,9 @@ struct RoomCanvasView: View {
                 Canvas { ctx, size in
                     let cellSize = CGFloat(coordinator.gridResolution) * scale
                     for cell in coordinator.paintedCells {
-                        let wx = Float(cell.x) * coordinator.gridResolution
-                        let wz = Float(cell.z) * coordinator.gridResolution
-                        let p = project(SIMD2<Float>(wx, wz))
+                        let wx = Double(cell.x) * coordinator.gridResolution
+                        let wz = Double(cell.z) * coordinator.gridResolution
+                        let p = project(SIMD2<Float>(Float(wx), Float(wz)))
                         let rect = CGRect(
                             x: p.x - cellSize / 2,
                             y: p.y - cellSize / 2,
@@ -1119,8 +1119,8 @@ struct RoomCanvasView: View {
         // Include painted cells' centers so the view adapts to the walked area
         for cell in coordinator.paintedCells {
             points.append(SIMD2<Float>(
-                Float(cell.x) * coordinator.gridResolution,
-                Float(cell.z) * coordinator.gridResolution
+                Float(Double(cell.x) * coordinator.gridResolution),
+                Float(Double(cell.z) * coordinator.gridResolution)
             ))
         }
         return points

@@ -126,9 +126,9 @@ final class HeatmapViewModel {
         // per point and interfere with the real-time AR experience. The grading
         // engine handles this gracefully with default scores when speed is absent.
         let point = HeatmapPoint(
-            x: position.x,
-            y: position.y,
-            z: position.z,
+            x: Double(position.x),
+            y: Double(position.y),
+            z: Double(position.z),
             signalStrength: wifiService.signalStrength,
             latency: latency,
             downloadSpeed: 0,
@@ -175,7 +175,7 @@ final class HeatmapViewModel {
 
     func addPoint(x: Float, y: Float, z: Float, signalStrength: Int, latency: Double) {
         let point = HeatmapPoint(
-            x: x, y: y, z: z,
+            x: Double(x), y: Double(y), z: Double(z),
             signalStrength: signalStrength,
             latency: latency,
             downloadSpeed: 0,

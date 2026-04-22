@@ -162,10 +162,10 @@ final class WalkthroughSession {
     var gradeId: UUID?
 
     // Floor plan bounds
-    var minX: Float
-    var maxX: Float
-    var minY: Float
-    var maxY: Float
+    var minX: Double
+    var maxX: Double
+    var minY: Double
+    var maxY: Double
 
     init(
         id: UUID = UUID(),
@@ -173,10 +173,10 @@ final class WalkthroughSession {
         durationSeconds: Double = 0,
         pointCount: Int = 0,
         gradeId: UUID? = nil,
-        minX: Float = 0,
-        maxX: Float = 0,
-        minY: Float = 0,
-        maxY: Float = 0
+        minX: Double = 0,
+        maxX: Double = 0,
+        minY: Double = 0,
+        maxY: Double = 0
     ) {
         self.id = id
         self.timestamp = timestamp

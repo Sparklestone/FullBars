@@ -6,7 +6,7 @@ final class RoomGeometryTests: XCTestCase {
 
     private let homeId = UUID()
 
-    private func room(corners: [(Float, Float)] = [],
+    private func room(corners: [(Double, Double)] = [],
                       painted: [(Int, Int)] = [],
                       gridRes: Float = 0.5) -> Room {
         let r = Room(homeId: homeId, paintGridResolutionMeters: gridRes)
@@ -24,34 +24,34 @@ final class RoomGeometryTests: XCTestCase {
     }
 
     func testAreaOfUnitSquareIsOne() {
-        let square: [(Float, Float)] = [(0, 0), (1, 0), (1, 1), (0, 1)]
+        let square: [(Double, Double)] = [(0, 0), (1, 0), (1, 1), (0, 1)]
         XCTAssertEqual(room(corners: square).approximateAreaSquareMeters, 1.0, accuracy: 0.001)
     }
 
     func testAreaOf10x5Rectangle() {
-        let rect: [(Float, Float)] = [(0, 0), (10, 0), (10, 5), (0, 5)]
+        let rect: [(Double, Double)] = [(0, 0), (10, 0), (10, 5), (0, 5)]
         XCTAssertEqual(room(corners: rect).approximateAreaSquareMeters, 50.0, accuracy: 0.001)
     }
 
     func testAreaOfRightTriangleIsHalfBaseTimesHeight() {
-        let tri: [(Float, Float)] = [(0, 0), (4, 0), (0, 3)]
+        let tri: [(Double, Double)] = [(0, 0), (4, 0), (0, 3)]
         XCTAssertEqual(room(corners: tri).approximateAreaSquareMeters, 6.0, accuracy: 0.001)
     }
 
     func testAreaIsRotationInvariant() {
         // Same unit square rotated around origin — area should still be 1
-        let rotated: [(Float, Float)] = [
+        let rotated: [(Double, Double)] = [
             (0, 0),
-            (Float(cos(0.7)), Float(sin(0.7))),
-            (Float(cos(0.7) - sin(0.7)), Float(sin(0.7) + cos(0.7))),
-            (-Float(sin(0.7)), Float(cos(0.7)))
+            (Double(cos(0.7)), Double(sin(0.7))),
+            (Double(cos(0.7) - sin(0.7)), Double(sin(0.7) + cos(0.7))),
+            (-Double(sin(0.7)), Double(cos(0.7)))
         ]
         XCTAssertEqual(room(corners: rotated).approximateAreaSquareMeters, 1.0, accuracy: 0.001)
     }
 
     func testAreaIsIndependentOfWindingDirection() {
-        let cw: [(Float, Float)] = [(0, 0), (0, 1), (1, 1), (1, 0)]
-        let ccw: [(Float, Float)] = [(0, 0), (1, 0), (1, 1), (0, 1)]
+        let cw: [(Double, Double)] = [(0, 0), (0, 1), (1, 1), (1, 0)]
+        let ccw: [(Double, Double)] = [(0, 0), (1, 0), (1, 1), (0, 1)]
         XCTAssertEqual(
             room(corners: cw).approximateAreaSquareMeters,
             room(corners: ccw).approximateAreaSquareMeters,

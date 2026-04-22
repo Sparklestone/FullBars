@@ -10,8 +10,8 @@ final class Doorway {
     var createdAt: Date
 
     // Position in room-local coordinates (meters)
-    var x: Float
-    var z: Float
+    var x: Double
+    var z: Double
 
     // What this doorway connects to. Only one of the three should be true.
     var connectsToRoomId: UUID?           // Links to another Room.id (internal door)
@@ -27,8 +27,8 @@ final class Doorway {
         id: UUID = UUID(),
         roomId: UUID,
         createdAt: Date = .now,
-        x: Float = 0,
-        z: Float = 0,
+        x: Double = 0,
+        z: Double = 0,
         connectsToRoomId: UUID? = nil,
         connectsToOutside: Bool = false,
         connectsToUnknownRoom: Bool = false,
