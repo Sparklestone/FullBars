@@ -8,21 +8,18 @@ struct SignalRange {
     let weakest: Int     // Worst non-weak-spot signal (e.g., -78)
     
     /// Maps a signal strength to 0.0 (weakest/orange) through 1.0 (strongest/green).
-    /// Returns nil if the signal is a weak spot (below -80 dBm).
-    func normalizedPosition(_ dBm: Int) -> Double? {
-        guard dBm >= -80 else { return nil } // weak spot — use red
-        let range = Double(strongest - weakest)
+    /// Uses the full range of observed signals — never returns nil.
+    func normalizedPosition(_ dBm: Int) -> Double {
+        let effectiveWeakest = min(weakest, -90)
+        let range = Double(strongest - effectiveWeakest)
         guard range > 0 else { return 1.0 }
-        return max(0, min(1, Double(dBm - weakest) / range))
+        return max(0, min(1, Double(dBm - effectiveWeakest) / range))
     }
-    
+
     /// Color for a signal value using the relative scale.
     /// Interpolates from orange (weakest) through yellow to green (strongest).
-    /// Weak spots (below -80 dBm) are always red.
     static func relativeColor(for dBm: Int, range: SignalRange) -> Color {
-        guard let norm = range.normalizedPosition(dBm) else {
-            return .red // weak spot
-        }
+        let norm = range.normalizedPosition(dBm)
         // Interpolate from orange (0.0) through yellow (0.5) to green (1.0)
         if norm >= 0.5 {
             let t = (norm - 0.5) * 2 // 0..1 within green-yellow
@@ -94,9 +91,9 @@ struct WholeHouseAnalysisService {
     /// Computes the min and max signal strengths from a set of HeatmapPoints, excluding weak-spot samples below -80 dBm.
     /// Handles edge cases: returns sensible defaults for empty data.
     static func computeSignalRange(points: [HeatmapPoint]) -> SignalRange {
-        // Collect all valid (non-weak-spot) signal strengths
+        // Collect all signal strengths (include everything above -95 dBm)
         let validSignals = points
-            .filter { $0.signalStrength >= -80 }
+            .filter { $0.signalStrength >= -95 }
             .map { $0.signalStrength }
 
         if validSignals.isEmpty {

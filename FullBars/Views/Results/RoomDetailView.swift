@@ -43,13 +43,19 @@ struct RoomDetailView: View {
     /// Live weak spot detection — uses the same service that computes the stored
     /// weakSpotCount so the map overlays match the metrics.
     private var liveWeakSpots: [WeakSpot] {
-        CoveragePlanningService.detectWeakSpots(points: points)
+        CoveragePlanningService.detectWeakSpots(points: points, roomDownloadMbps: room.downloadMbps)
+    }
+
+    /// Effective weak spot threshold adapts to room speed.
+    /// If the room has fast download speeds, only truly dead signal areas count.
+    private var effectiveWeakSpotThreshold: Int {
+        if room.downloadMbps >= 50 { return -90 }
+        if room.downloadMbps >= 25 { return -85 }
+        return -80
     }
 
     private var weakSpotPoints: [HeatmapPoint] {
-        // Absolute threshold matching CoveragePlanningService.weakSpotModerateThreshold (-80 dBm).
-        // Below -80 dBm, moderate performance criteria (streaming, video calls) cannot be met.
-        return points.filter { $0.signalStrength < -80 }
+        return points.filter { $0.signalStrength < effectiveWeakSpotThreshold }
     }
 
     private var houseSignalRange: SignalRange {
@@ -1054,8 +1060,8 @@ struct RoomMapCanvas: View {
         // Pre-compute weak spot regions so we can leave gaps in the heatmap
         let dzRegions = weakSpotRegions(project: project, scale: scale)
 
-        let power: Double = 2.5
-        let maxRadius: CGFloat = 80
+        let power: Double = 3.0     // Higher power = more local influence, better variability
+        let maxRadius: CGFloat = 50  // Tighter radius so samples don't bleed across the room
 
         // Use whole-house relative signal range for green→orange coloring
         let range = signalRange
@@ -1098,8 +1104,9 @@ struct RoomMapCanvas: View {
                 let interpolated = weightedSignal / totalWeight
                 let dBm = Int(interpolated)
 
-                // Skip weak-spot-level signals (they have their own overlay)
-                guard dBm >= -80 else { continue }
+                // Skip extremely weak signals (below -95 dBm is essentially no signal).
+                // Areas with actual weak spots are already handled by the overlay layer.
+                guard dBm >= -95 else { continue }
 
                 // Green→orange relative color from whole-house range
                 let cellColor = SignalRange.relativeColor(for: dBm, range: range)
