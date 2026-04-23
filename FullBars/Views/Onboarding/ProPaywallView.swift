@@ -84,34 +84,80 @@ struct ProPaywallView: View {
     // MARK: - Features
 
     private var featureList: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            featureRow(icon: "figure.walk.motion", text: "Unlimited Home Scans — map every room (30% of grade)")
-            featureRow(icon: "speedometer", text: "Unlimited speed tests & history (25% of grade)")
-            featureRow(icon: "stethoscope", text: "Full diagnostics — interference fixes & channel tips")
-            featureRow(icon: "camera.viewfinder", text: "AR Floor Plan with LiDAR scan")
-            featureRow(icon: "map.fill", text: "Coverage Planner — find weak spots & optimal mesh placement")
-            featureRow(icon: "building.2.fill", text: "Multi-floor weak spot diagnosis across your whole building")
-            featureRow(icon: "chart.line.uptrend.xyaxis", text: "Signal trends — track your grade improving over time")
-            featureRow(icon: "arrow.left.arrow.right", text: "Before/After — prove your fixes worked")
+        VStack(alignment: .leading, spacing: 0) {
+            // Header row
+            HStack {
+                Text("Feature")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Text("Free")
+                    .frame(width: 50)
+                Text("Pro")
+                    .frame(width: 50)
+                    .foregroundStyle(primary)
+            }
+            .font(.system(.caption, design: .rounded).weight(.bold))
+            .foregroundStyle(.white.opacity(0.6))
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+
+            Divider().overlay(Color.white.opacity(0.08))
+
+            comparisonRow("Room scans", free: "3 rooms", pro: "Unlimited")
+            comparisonRow("Speed tests", free: "1 per room", pro: "Unlimited")
+            comparisonRow("Room grading (A–F)", free: true, pro: true)
+            comparisonRow("Signal heatmap", free: true, pro: true)
+            comparisonRow("Weak spot detection", free: true, pro: true)
+            comparisonRow("Rescan history", free: false, pro: true)
+            comparisonRow("Coverage planner & mesh placement", free: false, pro: true)
+            comparisonRow("Multi-floor analysis", free: false, pro: true)
+            comparisonRow("Full House Report (PDF)", free: false, pro: true)
+            comparisonRow("Shareable Results Badge", free: false, pro: true)
+            comparisonRow("Interference diagnostics", free: false, pro: true)
         }
-        .padding(18)
         .background(
             RoundedRectangle(cornerRadius: FullBars.Design.Layout.cornerRadiusMedium)
                 .fill(Color(red: 0.10, green: 0.12, blue: 0.16))
                 .overlay(RoundedRectangle(cornerRadius: FullBars.Design.Layout.cornerRadiusMedium).stroke(Color.white.opacity(0.08)))
         )
+        .clipShape(RoundedRectangle(cornerRadius: FullBars.Design.Layout.cornerRadiusMedium))
     }
 
-    private func featureRow(icon: String, text: String) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.system(size: 16, weight: .semibold))
+    private func comparisonRow(_ feature: String, free: Bool, pro: Bool) -> some View {
+        HStack {
+            Text(feature)
+                .font(.system(.caption, design: .rounded))
+                .foregroundStyle(.white.opacity(0.85))
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Image(systemName: free ? "checkmark" : "xmark")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(free ? .green : .white.opacity(0.2))
+                .frame(width: 50)
+            Image(systemName: "checkmark")
+                .font(.system(size: 11, weight: .bold))
                 .foregroundStyle(primary)
-                .frame(width: 24)
-            Text(text)
-                .font(.system(.subheadline, design: .rounded))
-                .foregroundStyle(.white.opacity(0.9))
+                .frame(width: 50)
         }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+    }
+
+    private func comparisonRow(_ feature: String, free: String, pro: String) -> some View {
+        HStack {
+            Text(feature)
+                .font(.system(.caption, design: .rounded))
+                .foregroundStyle(.white.opacity(0.85))
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Text(free)
+                .font(.system(.caption2, design: .rounded))
+                .foregroundStyle(.white.opacity(0.5))
+                .frame(width: 50)
+            Text(pro)
+                .font(.system(.caption2, design: .rounded).weight(.semibold))
+                .foregroundStyle(primary)
+                .frame(width: 50)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
     }
 
     // MARK: - Pricing Cards

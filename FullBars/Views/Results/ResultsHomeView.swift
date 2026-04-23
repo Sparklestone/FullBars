@@ -261,6 +261,7 @@ struct ResultsHomeView: View {
                 RoundedRectangle(cornerRadius: 12)
                     .stroke(cyan.opacity(0.3), lineWidth: 1)
             )
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
@@ -318,6 +319,7 @@ struct ResultsHomeView: View {
                     RoundedRectangle(cornerRadius: 12)
                         .stroke(cyan.opacity(0.3), lineWidth: 1)
                 )
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
         }
@@ -456,6 +458,7 @@ struct ResultsHomeView: View {
         .padding(14)
         .background(Color.white.opacity(0.05))
         .cornerRadius(12)
+        .contentShape(Rectangle())
     }
 
     // MARK: - Mesh Recommendation

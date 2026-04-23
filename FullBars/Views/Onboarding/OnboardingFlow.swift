@@ -197,6 +197,7 @@ struct OnboardingFlow: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding(.horizontal, 12)
                                 .padding(.vertical, 8)
+                                .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
                             Divider().overlay(Color.white.opacity(0.06))
@@ -873,6 +874,7 @@ struct OnboardingFlow: View {
                     .stroke(isSelected ? cyan : Color.white.opacity(0.1), lineWidth: isSelected ? 2 : 1)
             )
             .cornerRadius(12)
+            .contentShape(Rectangle())
         }
     }
 
@@ -904,6 +906,7 @@ struct OnboardingFlow: View {
                     .stroke(isSelected ? cyan : Color.white.opacity(0.1), lineWidth: isSelected ? 2 : 1)
             )
             .cornerRadius(12)
+            .contentShape(Rectangle())
         }
     }
 

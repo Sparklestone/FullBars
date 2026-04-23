@@ -307,6 +307,7 @@ struct HomeScanHomeView: View {
         .padding(14)
         .background(Color.white.opacity(0.05))
         .cornerRadius(12)
+        .contentShape(Rectangle())
     }
 
     private func floorLabel(for room: Room) -> String {
