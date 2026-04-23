@@ -447,6 +447,13 @@ struct OnboardingFlow: View {
                 areaSpeedResult = nil
             }
         }
+        .onAppear {
+            // Auto-lookup if ZIP was pre-filled from address autocomplete
+            let trimmed = zipCode.trimmingCharacters(in: .whitespaces)
+            if areaSpeedResult == nil && trimmed.count == 5 && trimmed.allSatisfy(\.isNumber) {
+                lookupAreaSpeed(zip: trimmed)
+            }
+        }
     }
 
     private func lookupAreaSpeed(zip: String) {
