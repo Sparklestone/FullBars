@@ -556,32 +556,85 @@ struct OnboardingFlow: View {
     // MARK: - Data Sharing
 
     private var dataSharingStep: some View {
-        VStack(spacing: 20) {
-            header(icon: "chart.bar.fill",
-                   title: "Help improve Wi-Fi for everyone",
-                   subtitle: "Share fully anonymous scan results to help build real-world insights.")
+        ScrollView {
+            VStack(spacing: 16) {
+                header(icon: "chart.bar.fill",
+                       title: "Anonymous Data Sharing",
+                       subtitle: "Help improve Wi-Fi for everyone.")
 
-            VStack(alignment: .leading, spacing: 10) {
-                bullet(icon: "checkmark.circle.fill", text: "Measured speeds vs. your ISP plan", color: .green)
-                bullet(icon: "checkmark.circle.fill", text: "Coverage quality by dwelling type", color: .green)
-                bullet(icon: "checkmark.circle.fill", text: "Device counts and interference levels", color: .green)
-                Divider().opacity(0.2)
-                bullet(icon: "xmark.circle.fill", text: "No name, email, or address", color: .red)
-                bullet(icon: "xmark.circle.fill", text: "No network names or passwords", color: .red)
-                bullet(icon: "xmark.circle.fill", text: "No GPS coordinates", color: .red)
-            }
-            .padding(14)
-            .background(Color.white.opacity(0.04))
-            .cornerRadius(12)
+                // Toggle card
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Share anonymous data")
+                            .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                            .foregroundStyle(.white)
+                        Text("You can change this anytime in Settings")
+                            .font(.system(.caption2, design: .rounded))
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Toggle("", isOn: $dataCollectionOptIn)
+                        .labelsHidden()
+                        .tint(cyan)
+                }
+                .padding(14)
+                .background(Color.white.opacity(0.05))
+                .cornerRadius(12)
 
-            Toggle(isOn: $dataCollectionOptIn) {
-                Text("Share anonymous data")
-                    .foregroundStyle(.white)
+                // What we collect
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("What we collect")
+                        .font(.system(.subheadline, design: .rounded).weight(.bold))
+                        .foregroundStyle(.white)
+                    bullet(icon: "speedometer", text: "Measured speeds vs. your ISP plan", color: cyan)
+                    bullet(icon: "house.fill", text: "Coverage quality by dwelling type", color: cyan)
+                    bullet(icon: "antenna.radiowaves.left.and.right", text: "Device counts and interference levels", color: cyan)
+                    bullet(icon: "info.circle.fill", text: "ZIP code (never street address)", color: cyan)
+                }
+                .padding(14)
+                .background(Color.white.opacity(0.04))
+                .cornerRadius(12)
+
+                // How data is used
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("How data is used")
+                        .font(.system(.subheadline, design: .rounded).weight(.bold))
+                        .foregroundStyle(.white)
+                    Text("Anonymous, aggregated data may be shared with third parties such as ISPs and property management companies to improve Wi-Fi service and coverage. Data is never sold in a way that identifies you personally.")
+                        .font(.system(.caption, design: .rounded))
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .padding(14)
+                .background(Color.white.opacity(0.04))
+                .cornerRadius(12)
+
+                // We never collect
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("We never collect")
+                        .font(.system(.subheadline, design: .rounded).weight(.bold))
+                        .foregroundStyle(.white)
+                    bullet(icon: "xmark.circle.fill", text: "Your name, email, or street address", color: .red)
+                    bullet(icon: "wifi.slash", text: "Network names or passwords", color: .red)
+                    bullet(icon: "location.slash.fill", text: "GPS coordinates or precise location", color: .red)
+                }
+                .padding(14)
+                .background(Color.white.opacity(0.04))
+                .cornerRadius(12)
+
+                // Privacy policy
+                VStack(spacing: 8) {
+                    Text("You may opt out at any time or request deletion of your data under CCPA, GDPR, and applicable privacy laws. Visit fullbars.app/privacy for details.")
+                        .font(.system(.caption2, design: .rounded))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+
+                    Link("Read our Privacy Policy", destination: URL(string: "https://fullbars.app/privacy")!)
+                        .font(.system(.caption, design: .rounded).weight(.medium))
+                        .foregroundStyle(cyan)
+                }
+                .padding(.top, 4)
             }
-            .tint(cyan)
-            .padding(14)
-            .background(Color.white.opacity(0.04))
-            .cornerRadius(12)
         }
     }
 
