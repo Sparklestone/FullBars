@@ -2,8 +2,10 @@ import SwiftUI
 import SwiftData
 
 /// The room scan walkthrough UI. Drives a `RoomScanCoordinator` through a
-/// 5-step guided flow: (1) corners → (2) entries → (3) devices → (4) paint
-/// floor → (5) Find My-style signal guidance + speed test → review → save.
+/// simplified 4-step flow: (1) entrance → (2) corners → (3) center speed test
+/// → (4) router/mesh question → optional Pro deep scan → review → save.
+/// Signal samples and coverage data are collected passively in the background
+/// as the user walks between steps.
 struct RoomScanView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
@@ -11,17 +13,14 @@ struct RoomScanView: View {
     @Query private var existingRooms: [Room]
 
     @State private var coordinator = RoomScanCoordinator()
+    @State private var subs = SubscriptionManager.shared
 
     // Pre-scan setup state
     @State private var selectedRoomType: RoomType = .livingRoom
     @State private var customName: String = ""
     @AppStorage("lastUsedFloorIndex") private var selectedFloorIndex: Int = 0
 
-    // Doorway connection sheet state
-    @State private var editingDoorwayId: UUID?
-
-    // Device placement sheet state
-    @State private var presentingDevicePicker = false
+    // Deep scan offer uses coordinator.showDeepScanOffer
 
     private let cyan = FullBars.Design.Colors.accentCyan
     private let bg = Color(red: 0.05, green: 0.05, blue: 0.10)
@@ -36,20 +35,26 @@ struct RoomScanView: View {
                 switch coordinator.phase {
                 case .notStarted:
                     setupScreen
+                case .atEntrance:
+                    entranceScreen
                 case .markingCorners:
                     cornersScreen
-                case .markingEntries:
-                    entriesScreen
-                case .markingDevices:
-                    devicesScreen
-                case .paintingFloor:
-                    paintFloorScreen
-                case .guidingToSpeedTest:
-                    signalGuidanceScreen
+                case .walkToCenter:
+                    walkToCenterScreen
                 case .runningSpeedTest:
                     speedTestScreen
+                case .routerQuestion:
+                    routerQuestionScreen
+                case .placingRouter:
+                    placingRouterScreen
+                case .deepScan:
+                    deepScanScreen
                 case .reviewingBeforeSave:
-                    reviewScreen
+                    if coordinator.showDeepScanOffer {
+                        deepScanOfferScreen
+                    } else {
+                        reviewScreen
+                    }
                 case .saved:
                     savedScreen
                 case .failed(let err):
@@ -63,30 +68,13 @@ struct RoomScanView: View {
             if let home, selectedFloorIndex >= home.numberOfFloors {
                 selectedFloorIndex = 0
             }
-        }
-        .sheet(item: doorwayEditorBinding) { wrapper in
-            DoorwayConnectionSheet(
-                coordinator: coordinator,
-                doorwayId: wrapper.id,
-                existingRooms: homeRooms
-            )
-        }
-        .sheet(isPresented: $presentingDevicePicker) {
-            DevicePlacementSheet(coordinator: coordinator)
+            coordinator.deepScanAvailable = subs.isPro
         }
     }
 
     private var homeRooms: [Room] {
         guard let home else { return [] }
         return existingRooms.filter { $0.homeId == home.id }
-    }
-
-    // Convert the optional UUID into an Identifiable binding for .sheet(item:)
-    private var doorwayEditorBinding: Binding<IdentifiedID?> {
-        Binding(
-            get: { editingDoorwayId.map(IdentifiedID.init) },
-            set: { editingDoorwayId = $0?.id }
-        )
     }
 
     // MARK: - Setup
@@ -198,11 +186,14 @@ struct RoomScanView: View {
             Text("How it works")
                 .font(.system(.subheadline, design: .rounded).weight(.semibold))
                 .foregroundStyle(.white)
-            instructionRow(num: 1, text: "Walk to each corner and tap Add Corner.")
-            instructionRow(num: 2, text: "Walk to each entry/exit and tap Add Entry.")
-            instructionRow(num: 3, text: "Walk to each device (router, mesh node) and tap Add Device.")
-            instructionRow(num: 4, text: "Walk the floor to paint coverage.")
-            instructionRow(num: 5, text: "Follow the signal finder to the best spot for a speed test.")
+            instructionRow(num: 1, text: "Start at the room entrance and press Begin Scan.")
+            instructionRow(num: 2, text: "Walk to each corner and tap Add Corner.")
+            instructionRow(num: 3, text: "Walk to the center for a speed test.")
+            instructionRow(num: 4, text: "Tell us if there's a router or mesh node here.")
+            Text("We measure your signal in the background as you walk!")
+                .font(.system(.caption2, design: .rounded))
+                .foregroundStyle(cyan.opacity(0.7))
+                .padding(.top, 2)
         }
         .padding(14)
         .background(Color.white.opacity(0.04))
@@ -248,13 +239,13 @@ struct RoomScanView: View {
 
     private func stepIndicator(step: Int, title: String) -> some View {
         HStack(spacing: 12) {
-            ForEach(1...5, id: \.self) { i in
+            ForEach(1...coordinator.totalSteps, id: \.self) { i in
                 Circle()
                     .fill(i == step ? cyan : (i < step ? Color.green : Color.white.opacity(0.15)))
                     .frame(width: 8, height: 8)
             }
             Spacer()
-            Text("Step \(step) of 5")
+            Text("Step \(min(step, coordinator.totalSteps)) of \(coordinator.totalSteps)")
                 .font(.system(.caption2, design: .rounded))
                 .foregroundStyle(.secondary)
         }
@@ -318,12 +309,70 @@ struct RoomScanView: View {
         }
     }
 
-    // MARK: - Step 1: Corners
+    // MARK: - Step 1: Entrance
+
+    private var entranceScreen: some View {
+        VStack(spacing: 0) {
+            stepHeader(
+                step: 1,
+                title: "Start at the entrance",
+                subtitle: "Stand at the doorway to this room."
+            )
+
+            Spacer()
+
+            VStack(spacing: 16) {
+                ZStack {
+                    Circle()
+                        .fill(cyan.opacity(0.15))
+                        .frame(width: 120, height: 120)
+                    Image(systemName: "door.left.hand.open")
+                        .font(.system(size: 48, weight: .medium))
+                        .foregroundStyle(cyan)
+                }
+
+                Text("Stand at the entrance to the room")
+                    .font(.system(.title3, design: .rounded).weight(.bold))
+                    .foregroundStyle(.white)
+
+                Text("We'll start measuring your WiFi signal as soon as you begin. Walk naturally — we capture data in the background.")
+                    .font(.system(.subheadline, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
+
+                HStack(spacing: 8) {
+                    Image(systemName: "wifi")
+                        .foregroundStyle(signalColor)
+                    Text(signalLabel)
+                        .font(.system(.caption, design: .rounded).weight(.semibold))
+                        .foregroundStyle(signalColor)
+                }
+                .padding(.top, 8)
+            }
+
+            Spacer()
+
+            Button { coordinator.beginFromEntrance() } label: {
+                Label("Begin scan", systemImage: "play.fill")
+                    .font(.system(.headline, design: .rounded).weight(.bold))
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 16)
+                    .background(cyan)
+                    .foregroundStyle(.black)
+                    .cornerRadius(14)
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 24)
+        }
+    }
+
+    // MARK: - Step 2: Corners
 
     private var cornersScreen: some View {
         VStack(spacing: 0) {
             stepHeader(
-                step: 1,
+                step: 2,
                 title: "Mark corners",
                 subtitle: "Walk to each corner of the room and tap Add Corner."
             )
@@ -348,7 +397,11 @@ struct RoomScanView: View {
             Spacer()
 
             VStack(spacing: 10) {
-                Button { coordinator.markCorner() } label: {
+                Button {
+                    coordinator.markCorner()
+                    // Capture RSSI at each corner
+                    coordinator.captureCornerSignal()
+                } label: {
                     Label("Add corner", systemImage: "plus.square.on.square")
                         .font(.system(.headline, design: .rounded).weight(.bold))
                         .frame(maxWidth: .infinity)
@@ -374,291 +427,60 @@ struct RoomScanView: View {
         }
     }
 
-    // MARK: - Step 2: Entries / Exits
+    // MARK: - Step 3: Walk to center + speed test
 
-    private var entriesScreen: some View {
-        VStack(spacing: 0) {
-            stepHeader(
-                step: 2,
-                title: "Mark entries & exits",
-                subtitle: "Walk to each doorway and tap Add Entry/Exit."
-            )
-
-            RoomCanvasView(coordinator: coordinator)
-                .padding(.horizontal, 12)
-                .padding(.top, 8)
-
-            HStack {
-                Label("\(coordinator.doorways.count) entries", systemImage: "door.left.hand.open")
-                    .font(.system(.caption, design: .rounded).weight(.semibold))
-                    .foregroundStyle(.orange)
-                Spacer()
-                Label(signalLabel, systemImage: "wifi")
-                    .font(.caption2)
-                    .foregroundStyle(signalColor)
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 8)
-
-            Spacer()
-
-            VStack(spacing: 10) {
-                Button {
-                    if let id = coordinator.markDoorway() {
-                        editingDoorwayId = id
-                    }
-                } label: {
-                    Label("Add entry / exit", systemImage: "door.left.hand.open")
-                        .font(.system(.headline, design: .rounded).weight(.bold))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(Color.orange)
-                        .foregroundStyle(.black)
-                        .cornerRadius(12)
-                }
-
-                Button { coordinator.finishEntries() } label: {
-                    Text("Done with entries")
-                        .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(Color.green)
-                        .foregroundStyle(.black)
-                        .cornerRadius(12)
-                }
-            }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 24)
-        }
-    }
-
-    // MARK: - Step 3: Devices
-
-    private var devicesScreen: some View {
+    private var walkToCenterScreen: some View {
         VStack(spacing: 0) {
             stepHeader(
                 step: 3,
-                title: "Mark devices",
-                subtitle: "Walk to your router, mesh nodes, or access points and tap Add Device."
+                title: "Speed test",
+                subtitle: "Walk to the approximate center of the room."
             )
 
             RoomCanvasView(coordinator: coordinator)
                 .padding(.horizontal, 12)
                 .padding(.top, 8)
 
-            HStack {
-                Label("\(coordinator.devices.count) devices", systemImage: "wifi.router.fill")
-                    .font(.system(.caption, design: .rounded).weight(.semibold))
-                    .foregroundStyle(.purple)
-                Spacer()
-                Label(signalLabel, systemImage: "wifi")
-                    .font(.caption2)
-                    .foregroundStyle(signalColor)
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 8)
-
             Spacer()
 
-            VStack(spacing: 10) {
-                Button { presentingDevicePicker = true } label: {
-                    Label("Add device", systemImage: "wifi.router.fill")
-                        .font(.system(.headline, design: .rounded).weight(.bold))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(Color.purple)
-                        .foregroundStyle(.white)
-                        .cornerRadius(12)
-                }
-
-                Button { coordinator.finishDevices() } label: {
-                    Text("Done with devices")
-                        .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(Color.green)
-                        .foregroundStyle(.black)
-                        .cornerRadius(12)
-                }
-            }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 24)
-        }
-    }
-
-    // MARK: - Step 4: Paint floor
-
-    private var paintFloorScreen: some View {
-        VStack(spacing: 0) {
-            stepHeader(
-                step: 4,
-                title: "Paint the floor",
-                subtitle: "Walk around the room to map signal coverage."
-            )
-
-            RoomCanvasView(coordinator: coordinator)
-                .padding(.horizontal, 12)
-                .padding(.top, 8)
-
-            HStack {
-                Label("\(Int(coordinator.paintedCoverageFraction * 100))% painted", systemImage: "paintbrush.fill")
-                    .font(.system(.caption, design: .rounded).weight(.semibold))
-                    .foregroundStyle(coverageColor)
-                Spacer()
-                Label(signalLabel, systemImage: "wifi")
-                    .font(.caption2)
-                    .foregroundStyle(signalColor)
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 8)
-
-            Spacer()
-
-            Button { coordinator.finishPainting() } label: {
-                HStack {
-                    Image(systemName: coordinator.canFinishPainting ? "checkmark.circle.fill" : "paintbrush.pointed.fill")
-                    Text(coordinator.canFinishPainting
-                         ? "Done painting"
-                         : "Keep walking (\(Int(coordinator.paintedCoverageFraction * 100))%)")
-                }
-                .font(.system(.headline, design: .rounded).weight(.bold))
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .background(coordinator.canFinishPainting ? Color.green : Color.white.opacity(0.12))
-                .foregroundStyle(coordinator.canFinishPainting ? .black : .secondary)
-                .cornerRadius(12)
-            }
-            .disabled(!coordinator.canFinishPainting)
-            .padding(.horizontal, 20)
-            .padding(.bottom, 24)
-        }
-    }
-
-    // MARK: - Step 5a: Signal guidance (Find My-style)
-
-    private var signalGuidanceScreen: some View {
-        VStack(spacing: 0) {
-            stepHeader(
-                step: 5,
-                title: "Find best signal",
-                subtitle: "Walk toward the strongest signal spot for an optimal speed test."
-            )
-
-            Spacer()
-
-            // Find My-style proximity indicator
-            ZStack {
-                // Outer pulsing ring
-                Circle()
-                    .fill(proximityColor.opacity(0.08))
-                    .frame(width: proximityRingSize, height: proximityRingSize)
-
-                Circle()
-                    .fill(proximityColor.opacity(0.15))
-                    .frame(width: proximityRingSize * 0.7, height: proximityRingSize * 0.7)
-
-                Circle()
-                    .fill(proximityColor.opacity(0.25))
-                    .frame(width: proximityRingSize * 0.45, height: proximityRingSize * 0.45)
-
-                // Center indicator
+            VStack(spacing: 12) {
                 VStack(spacing: 6) {
-                    Image(systemName: proximityIcon)
-                        .font(.system(size: 36))
-                        .foregroundStyle(proximityColor)
-                    Text(coordinator.signalProximity.rawValue)
-                        .font(.system(.title2, design: .rounded).weight(.bold))
-                        .foregroundStyle(proximityColor)
-                    if coordinator.distanceToBestSignal < .greatestFiniteMagnitude {
-                        let feet = coordinator.distanceToBestSignal * 3.28084
-                        Text(feet < 2 ? "You're here!" : String(format: "%.0f ft away", feet))
-                            .font(.system(.caption, design: .rounded))
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-
-            // Direction arrow (only show when not "here")
-            if coordinator.signalProximity != .here {
-                Image(systemName: "arrow.up")
-                    .font(.system(size: 32, weight: .bold))
-                    .foregroundStyle(proximityColor)
-                    .rotationEffect(.radians(Double(coordinator.bearingToBestSignal)))
-                    .padding(.top, 16)
-            }
-
-            Spacer()
-
-            VStack(spacing: 10) {
-                if coordinator.signalProximity == .here || coordinator.signalProximity == .hot {
-                    Button { coordinator.beginSpeedTest() } label: {
-                        Label("Run speed test here", systemImage: "speedometer")
-                            .font(.system(.headline, design: .rounded).weight(.bold))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                            .background(Color.green)
-                            .foregroundStyle(.black)
-                            .cornerRadius(12)
-                    }
-                } else {
-                    Text("Get closer to the strongest signal to start the speed test")
+                    Image(systemName: "scope")
+                        .font(.system(size: 32))
+                        .foregroundStyle(cyan)
+                    Text("Walk to the center of the room")
+                        .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                        .foregroundStyle(.white)
+                    Text("It doesn't need to be exact — just roughly the middle.")
                         .font(.system(.caption, design: .rounded))
                         .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
-                        .padding(.horizontal, 20)
                 }
+                .padding(.horizontal, 20)
 
-                // Allow skipping if they want to test where they are
-                Button { coordinator.beginSpeedTest() } label: {
-                    Text("Test here instead")
-                        .font(.system(.caption, design: .rounded).weight(.semibold))
-                        .foregroundStyle(.secondary)
+                Button { coordinator.confirmAtCenter() } label: {
+                    Label("I'm here — run speed test", systemImage: "speedometer")
+                        .font(.system(.headline, design: .rounded).weight(.bold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(Color.green)
+                        .foregroundStyle(.black)
+                        .cornerRadius(14)
                 }
-                .padding(.top, 4)
             }
             .padding(.horizontal, 20)
             .padding(.bottom, 24)
         }
     }
 
-    private var proximityColor: Color {
-        switch coordinator.signalProximity {
-        case .here:   return .green
-        case .hot:    return .green
-        case .warmer: return .yellow
-        case .warm:   return .orange
-        case .far:    return .red
-        }
-    }
-
-    private var proximityRingSize: CGFloat {
-        switch coordinator.signalProximity {
-        case .here:   return 240
-        case .hot:    return 220
-        case .warmer: return 200
-        case .warm:   return 180
-        case .far:    return 160
-        }
-    }
-
-    private var proximityIcon: String {
-        switch coordinator.signalProximity {
-        case .here:   return "wifi"
-        case .hot:    return "wifi"
-        case .warmer: return "wifi"
-        case .warm:   return "wifi.exclamationmark"
-        case .far:    return "wifi.slash"
-        }
-    }
-
-    // MARK: - Step 5b: Speed test
+    // MARK: - Step 3b: Speed test running
 
     private var speedTestScreen: some View {
         VStack(spacing: 24) {
             stepHeader(
-                step: 5,
+                step: 3,
                 title: "Speed test",
-                subtitle: "Stand still — testing at the optimal signal spot."
+                subtitle: "Stand still — measuring your connection."
             )
 
             Spacer()
@@ -689,19 +511,343 @@ struct RoomScanView: View {
         }
     }
 
+    // MARK: - Step 4: Router / Mesh question
+
+    private var routerQuestionScreen: some View {
+        VStack(spacing: 0) {
+            stepHeader(
+                step: 4,
+                title: "Router or mesh node?",
+                subtitle: "Is there a WiFi router or mesh node in this room?"
+            )
+
+            Spacer()
+
+            VStack(spacing: 16) {
+                // Speed test result summary
+                if coordinator.downloadMbps > 0 {
+                    HStack(spacing: 16) {
+                        VStack(spacing: 2) {
+                            Text("\(Int(coordinator.downloadMbps))")
+                                .font(.system(.title, design: .rounded).weight(.bold))
+                                .foregroundStyle(.white)
+                            Text("Mbps down")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                        VStack(spacing: 2) {
+                            Text("\(Int(coordinator.uploadMbps))")
+                                .font(.system(.title, design: .rounded).weight(.bold))
+                                .foregroundStyle(.white)
+                            Text("Mbps up")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                        VStack(spacing: 2) {
+                            Text("\(Int(coordinator.pingMs))")
+                                .font(.system(.title, design: .rounded).weight(.bold))
+                                .foregroundStyle(.white)
+                            Text("ms ping")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(16)
+                    .background(Color.white.opacity(0.05))
+                    .cornerRadius(12)
+                }
+
+                ZStack {
+                    Circle()
+                        .fill(Color.purple.opacity(0.15))
+                        .frame(width: 100, height: 100)
+                    Image(systemName: "wifi.router.fill")
+                        .font(.system(size: 42))
+                        .foregroundStyle(.purple)
+                }
+
+                Text("Is there a router or mesh node\nin this room?")
+                    .font(.system(.title3, design: .rounded).weight(.bold))
+                    .foregroundStyle(.white)
+                    .multilineTextAlignment(.center)
+            }
+
+            Spacer()
+
+            VStack(spacing: 10) {
+                Button { coordinator.yesRouterInRoom() } label: {
+                    Label("Yes — let me mark it", systemImage: "checkmark.circle.fill")
+                        .font(.system(.headline, design: .rounded).weight(.bold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(Color.purple)
+                        .foregroundStyle(.white)
+                        .cornerRadius(14)
+                }
+
+                Button { coordinator.noRouterInRoom() } label: {
+                    Text("No router or mesh here")
+                        .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(Color.white.opacity(0.06))
+                        .foregroundStyle(.white)
+                        .cornerRadius(12)
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.1), lineWidth: 1))
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 24)
+        }
+    }
+
+    // MARK: - Step 4b: Place router pin
+
+    private var placingRouterScreen: some View {
+        VStack(spacing: 0) {
+            stepHeader(
+                step: 4,
+                title: "Mark the router",
+                subtitle: "Walk to your router or mesh node and tap Place."
+            )
+
+            RoomCanvasView(coordinator: coordinator)
+                .padding(.horizontal, 12)
+                .padding(.top, 8)
+
+            HStack {
+                Label("\(coordinator.devices.count) device(s)", systemImage: "wifi.router.fill")
+                    .font(.system(.caption, design: .rounded).weight(.semibold))
+                    .foregroundStyle(.purple)
+                Spacer()
+                Label(signalLabel, systemImage: "wifi")
+                    .font(.caption2)
+                    .foregroundStyle(signalColor)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+
+            Spacer()
+
+            VStack(spacing: 10) {
+                Button {
+                    coordinator.markDevice(
+                        type: .router,
+                        isPrimaryRouter: coordinator.devices.isEmpty,
+                        label: nil
+                    )
+                } label: {
+                    Label("Place router here", systemImage: "mappin.and.ellipse")
+                        .font(.system(.headline, design: .rounded).weight(.bold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(Color.purple)
+                        .foregroundStyle(.white)
+                        .cornerRadius(12)
+                }
+
+                Button { coordinator.finishRouterPlacement() } label: {
+                    Text("Done")
+                        .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(coordinator.devices.isEmpty ? Color.white.opacity(0.08) : Color.green)
+                        .foregroundStyle(coordinator.devices.isEmpty ? Color.secondary : Color.black)
+                        .cornerRadius(12)
+                }
+                .disabled(coordinator.devices.isEmpty)
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 24)
+        }
+    }
+
+    // MARK: - Deep Scan Offer (Pro)
+
+    private var deepScanOfferScreen: some View {
+        VStack(spacing: 0) {
+            HStack {
+                Spacer()
+                Button { coordinator.showDeepScanOffer = false } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(.secondary)
+                        .font(.title3)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+
+            Spacer()
+
+            VStack(spacing: 16) {
+                ZStack {
+                    Circle()
+                        .fill(cyan.opacity(0.15))
+                        .frame(width: 100, height: 100)
+                    Image(systemName: "paintbrush.pointed.fill")
+                        .font(.system(size: 42))
+                        .foregroundStyle(cyan)
+                }
+
+                Text("Want more detail?")
+                    .font(.system(.title3, design: .rounded).weight(.bold))
+                    .foregroundStyle(.white)
+
+                Text("Run a Deep Scan by walking the entire floor. This creates a high-resolution heatmap with precise weak spot detection — ideal for large rooms or detailed analysis.")
+                    .font(.system(.subheadline, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
+
+                if !subs.isPro {
+                    HStack(spacing: 6) {
+                        Image(systemName: "crown.fill")
+                            .foregroundStyle(.yellow)
+                            .font(.caption)
+                        Text("Pro feature")
+                            .font(.system(.caption, design: .rounded).weight(.semibold))
+                            .foregroundStyle(.yellow)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color.yellow.opacity(0.12))
+                    .cornerRadius(8)
+                }
+            }
+
+            Spacer()
+
+            VStack(spacing: 10) {
+                if subs.isPro {
+                    Button {
+                        coordinator.showDeepScanOffer = false
+                        coordinator.beginDeepScan()
+                    } label: {
+                        Label("Start deep scan", systemImage: "paintbrush.pointed.fill")
+                            .font(.system(.headline, design: .rounded).weight(.bold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 16)
+                            .background(cyan)
+                            .foregroundStyle(.black)
+                            .cornerRadius(14)
+                    }
+                }
+
+                Button {
+                    coordinator.showDeepScanOffer = false
+                    // Already at reviewingBeforeSave, just dismiss the offer
+                } label: {
+                    Text(subs.isPro ? "Skip — standard scan is fine" : "Continue with standard scan")
+                        .font(.system(.subheadline, design: .rounded).weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 14)
+                        .background(Color.white.opacity(0.06))
+                        .foregroundStyle(.white)
+                        .cornerRadius(12)
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.1), lineWidth: 1))
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 24)
+        }
+    }
+
+    // MARK: - Deep Scan (Paint the floor)
+
+    private var deepScanScreen: some View {
+        VStack(spacing: 0) {
+            VStack(spacing: 0) {
+                HStack {
+                    Button { coordinator.goBackOneStep() } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "chevron.left")
+                            Text("Back")
+                        }
+                        .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    HStack(spacing: 6) {
+                        Image(systemName: "crown.fill")
+                            .foregroundStyle(.yellow)
+                            .font(.caption2)
+                        Text("Deep Scan")
+                            .font(.system(.caption, design: .rounded).weight(.bold))
+                            .foregroundStyle(.yellow)
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(Color.yellow.opacity(0.12))
+                    .cornerRadius(8)
+                    Spacer()
+                    Button { coordinator.finishDeepScan() } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(.secondary)
+                            .font(.title3)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.top, 8)
+
+                VStack(spacing: 4) {
+                    Text("Paint the floor")
+                        .font(.system(.title3, design: .rounded).weight(.bold))
+                        .foregroundStyle(.white)
+                    Text("Walk around the room to map high-resolution signal coverage.")
+                        .font(.system(.caption, design: .rounded))
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(.top, 10)
+            }
+
+            RoomCanvasView(coordinator: coordinator)
+                .padding(.horizontal, 12)
+                .padding(.top, 8)
+
+            HStack {
+                Label("\(Int(coordinator.paintedCoverageFraction * 100))% painted", systemImage: "paintbrush.fill")
+                    .font(.system(.caption, design: .rounded).weight(.semibold))
+                    .foregroundStyle(coverageColor)
+                Spacer()
+                Label(signalLabel, systemImage: "wifi")
+                    .font(.caption2)
+                    .foregroundStyle(signalColor)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
+
+            Spacer()
+
+            Button { coordinator.finishDeepScan() } label: {
+                HStack {
+                    Image(systemName: coordinator.canFinishPainting ? "checkmark.circle.fill" : "paintbrush.pointed.fill")
+                    Text(coordinator.canFinishPainting
+                         ? "Done painting"
+                         : "Keep walking (\(Int(coordinator.paintedCoverageFraction * 100))%)")
+                }
+                .font(.system(.headline, design: .rounded).weight(.bold))
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(coordinator.canFinishPainting ? Color.green : Color.white.opacity(0.12))
+                .foregroundStyle(coordinator.canFinishPainting ? .black : .secondary)
+                .cornerRadius(12)
+            }
+            .disabled(!coordinator.canFinishPainting)
+            .padding(.horizontal, 20)
+            .padding(.bottom, 24)
+        }
+    }
+
     // MARK: - Review
 
     private var reviewScreen: some View {
         VStack(spacing: 16) {
             HStack {
-                Button("Back") { coordinator.phase = .guidingToSpeedTest }
-                    .foregroundStyle(.secondary)
                 Spacer()
                 Text("Review & save")
                     .font(.system(.headline, design: .rounded).weight(.bold))
                     .foregroundStyle(.white)
                 Spacer()
-                Color.clear.frame(width: 60, height: 1)
             }
             .fixedSize(horizontal: false, vertical: true)
             .padding()
@@ -712,12 +858,47 @@ struct RoomScanView: View {
                         .frame(height: 260)
 
                     reviewStatCard("Corners marked", value: "\(coordinator.corners.count)")
-                    reviewStatCard("Doorways", value: "\(coordinator.doorways.count)")
-                    reviewStatCard("Devices placed", value: "\(coordinator.devices.count)")
+                    if !coordinator.devices.isEmpty {
+                        reviewStatCard("Router / mesh", value: "\(coordinator.devices.count)")
+                    }
                     reviewStatCard("Signal samples", value: "\(coordinator.samples.count)")
-                    reviewStatCard("BLE devices detected", value: "\(coordinator.bleDeviceIds.count)")
-                    reviewStatCard("Painted coverage", value: "\(Int(coordinator.paintedCoverageFraction * 100))%")
+                    reviewStatCard("Coverage mapped", value: "\(Int(coordinator.paintedCoverageFraction * 100))%")
                     reviewStatCard("Speed test", value: "\(Int(coordinator.downloadMbps)) ↓ / \(Int(coordinator.uploadMbps)) ↑ Mbps")
+                    reviewStatCard("Ping", value: "\(Int(coordinator.pingMs)) ms")
+
+                    // Offer deep scan if Pro and not yet done
+                    if subs.isPro && !coordinator.deepScanOffered {
+                        Button {
+                            coordinator.deepScanOffered = true
+                            coordinator.beginDeepScan()
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "crown.fill")
+                                    .foregroundStyle(.yellow)
+                                Text("Run Deep Scan for more detail")
+                                    .font(.system(.caption, design: .rounded).weight(.semibold))
+                                    .foregroundStyle(.white)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(14)
+                            .background(Color.white.opacity(0.05))
+                            .cornerRadius(12)
+                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.yellow.opacity(0.3), lineWidth: 1))
+                        }
+                    } else if !subs.isPro {
+                        // Soft upsell for free users
+                        HStack(spacing: 8) {
+                            Image(systemName: "crown.fill")
+                                .foregroundStyle(.yellow)
+                                .font(.caption)
+                            Text("Upgrade to Pro for Deep Scan — high-res heatmaps with precise weak spot detection")
+                                .font(.system(.caption2, design: .rounded))
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(12)
+                        .background(Color.white.opacity(0.03))
+                        .cornerRadius(10)
+                    }
                 }
                 .padding(.horizontal, 20)
             }

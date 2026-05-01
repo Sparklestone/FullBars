@@ -112,6 +112,7 @@ struct ProPaywallView: View {
             comparisonRow("Multi-floor analysis", free: false, pro: true)
             comparisonRow("Full House Report (PDF)", free: false, pro: true)
             comparisonRow("Shareable Results Badge", free: false, pro: true)
+            comparisonRow("Deep Scan walkthrough", free: false, pro: true)
             comparisonRow("Interference diagnostics", free: false, pro: true)
         }
         .background(
