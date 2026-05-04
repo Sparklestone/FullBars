@@ -47,11 +47,9 @@ struct RoomDetailView: View {
     }
 
     /// Effective weak spot threshold adapts to room speed.
-    /// If the room has fast download speeds, only truly dead signal areas count.
+    /// Uses centralized thresholds from AppConstants.Signal.
     private var effectiveWeakSpotThreshold: Int {
-        if room.downloadMbps >= 50 { return -90 }
-        if room.downloadMbps >= 25 { return -85 }
-        return -80
+        AppConstants.Signal.weakSpotThreshold(downloadMbps: room.downloadMbps)
     }
 
     private var weakSpotPoints: [HeatmapPoint] {
@@ -117,6 +115,8 @@ struct RoomDetailView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     gradeCard
+                    signalBreakdownCard
+                    speedComparisonCard
                     experienceTierCard
                     metricsGrid
                     mapCard
@@ -201,6 +201,173 @@ struct RoomDetailView: View {
         case "C": return "Usable, but some trouble areas."
         case "D": return "Noticeable gaps. A mesh node could help."
         default:  return "Significant weak spots. Consider repositioning your router or adding a mesh node."
+        }
+    }
+
+    // MARK: - Signal Breakdown Card
+
+    /// Visual breakdown of signal quality across the room — shows the distribution
+    /// of signal readings as a stacked bar (excellent / good / fair / weak).
+    private var signalBreakdownCard: some View {
+        let strengths = points.map(\.signalStrength)
+        let total = max(1, strengths.count)
+        let excellent = strengths.filter { $0 >= AppConstants.Signal.excellent }.count
+        let good = strengths.filter { $0 >= AppConstants.Signal.good && $0 < AppConstants.Signal.excellent }.count
+        let fair = strengths.filter { $0 >= AppConstants.Signal.fair && $0 < AppConstants.Signal.good }.count
+        let weak = strengths.filter { $0 < AppConstants.Signal.fair }.count
+
+        return VStack(alignment: .leading, spacing: 10) {
+            Text("Signal Quality Distribution")
+                .font(.system(.headline, design: .rounded))
+                .foregroundStyle(.white)
+
+            // Stacked bar
+            GeometryReader { geo in
+                HStack(spacing: 0) {
+                    if excellent > 0 {
+                        Rectangle()
+                            .fill(Color.green)
+                            .frame(width: geo.size.width * CGFloat(excellent) / CGFloat(total))
+                    }
+                    if good > 0 {
+                        Rectangle()
+                            .fill(Color.mint)
+                            .frame(width: geo.size.width * CGFloat(good) / CGFloat(total))
+                    }
+                    if fair > 0 {
+                        Rectangle()
+                            .fill(Color.yellow)
+                            .frame(width: geo.size.width * CGFloat(fair) / CGFloat(total))
+                    }
+                    if weak > 0 {
+                        Rectangle()
+                            .fill(Color.red)
+                            .frame(width: geo.size.width * CGFloat(weak) / CGFloat(total))
+                    }
+                }
+                .clipShape(Capsule())
+            }
+            .frame(height: 12)
+
+            // Legend
+            HStack(spacing: 14) {
+                signalLegend(color: .green, label: "Excellent", pct: Double(excellent) / Double(total))
+                signalLegend(color: .mint, label: "Good", pct: Double(good) / Double(total))
+                signalLegend(color: .yellow, label: "Fair", pct: Double(fair) / Double(total))
+                signalLegend(color: .red, label: "Weak", pct: Double(weak) / Double(total))
+            }
+
+            // Signal range summary
+            if !strengths.isEmpty {
+                HStack(spacing: 16) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Strongest")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.secondary)
+                        Text("\(signalStats.max) dBm")
+                            .font(.system(.caption, design: .monospaced).weight(.semibold))
+                            .foregroundStyle(.green)
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Average")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.secondary)
+                        Text("\(signalStats.avg) dBm")
+                            .font(.system(.caption, design: .monospaced).weight(.semibold))
+                            .foregroundStyle(.white)
+                    }
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Weakest")
+                            .font(.system(size: 10))
+                            .foregroundStyle(.secondary)
+                        Text("\(signalStats.min) dBm")
+                            .font(.system(.caption, design: .monospaced).weight(.semibold))
+                            .foregroundStyle(signalStats.min < -75 ? .red : .yellow)
+                    }
+                }
+            }
+        }
+        .padding(16)
+        .background(Color.white.opacity(0.05))
+        .cornerRadius(14)
+    }
+
+    private func signalLegend(color: Color, label: String, pct: Double) -> some View {
+        HStack(spacing: 4) {
+            Circle().fill(color).frame(width: 6, height: 6)
+            Text("\(label) \(Int(pct * 100))%")
+                .font(.system(size: 9, design: .rounded))
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    // MARK: - Speed Comparison Card
+
+    /// Horizontal bar comparison: this room's speed vs the home average.
+    /// Gives users a quick sense of whether a room is underperforming relative
+    /// to the rest of their home.
+    @ViewBuilder
+    private var speedComparisonCard: some View {
+        let siblings = allRooms.filter { $0.homeId == room.homeId && $0.downloadMbps > 0 }
+        if siblings.count > 1, let bench = downloadBenchmark {
+            let maxSpeed = max(room.downloadMbps, bench, siblings.map(\.downloadMbps).max() ?? 1)
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Speed vs Home Average")
+                    .font(.system(.headline, design: .rounded))
+                    .foregroundStyle(.white)
+
+                speedBar(label: "This Room", value: room.downloadMbps, max: maxSpeed,
+                         color: room.downloadMbps >= bench ? .green : .orange)
+                speedBar(label: "Home Avg", value: bench, max: maxSpeed,
+                         color: .white.opacity(0.4))
+
+                if room.downloadMbps < bench * 0.7 {
+                    HStack(spacing: 6) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.orange)
+                        Text("This room is \(Int((1 - room.downloadMbps / bench) * 100))% slower than your home average. A mesh node could help.")
+                            .font(.system(.caption2, design: .rounded))
+                            .foregroundStyle(.secondary)
+                    }
+                } else if room.downloadMbps >= bench * 1.2 {
+                    HStack(spacing: 6) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 11))
+                            .foregroundStyle(.green)
+                        Text("Great news — this room performs above your home average.")
+                            .font(.system(.caption2, design: .rounded))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .padding(16)
+            .background(Color.white.opacity(0.05))
+            .cornerRadius(14)
+        }
+    }
+
+    private func speedBar(label: String, value: Double, max: Double, color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(label)
+                    .font(.system(.caption, design: .rounded))
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text("\(Int(value)) Mbps")
+                    .font(.system(.caption, design: .rounded).weight(.semibold))
+                    .foregroundStyle(color)
+            }
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(Color.white.opacity(0.08))
+                    Capsule()
+                        .fill(color)
+                        .frame(width: geo.size.width * CGFloat(value / max))
+                }
+            }
+            .frame(height: 8)
         }
     }
 

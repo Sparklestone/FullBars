@@ -64,8 +64,8 @@ final class GradingService {
     /// Signal Coverage (30%): Percentage of points with "good or better" signal,
     /// with additional penalty for detected weak spots.
     private static func calculateSignalCoverage(points: [HeatmapPoint]) -> Double {
-        let goodThreshold = -65
-        let fairThreshold = -75
+        let goodThreshold = AppConstants.Signal.good      // -65
+        let fairThreshold = AppConstants.Signal.fair       // -75
         let goodCount = points.filter { $0.signalStrength >= goodThreshold }.count
         let fairCount = points.filter { $0.signalStrength >= fairThreshold && $0.signalStrength < goodThreshold }.count
         let total = Double(points.count)
@@ -86,7 +86,7 @@ final class GradingService {
     /// Speed Performance (25%): Average download speed mapped to thresholds
     private static func calculateSpeedPerformance(points: [HeatmapPoint]) -> Double {
         let speeds = points.map(\.downloadSpeed).filter { $0 > 0 }
-        guard !speeds.isEmpty else { return 70 } // Default when speed not measured
+        guard !speeds.isEmpty else { return 50 } // Neutral default when speed not measured
 
         let avgSpeed = speeds.reduce(0, +) / Double(speeds.count)
 
@@ -103,7 +103,7 @@ final class GradingService {
     /// Reliability (20%): Based on latency consistency (jitter proxy) and packet loss proxy
     private static func calculateReliability(points: [HeatmapPoint]) -> Double {
         let latencies = points.map(\.latency).filter { $0 > 0 }
-        guard latencies.count >= 2 else { return 75 }
+        guard latencies.count >= 2 else { return 50 } // Neutral default
 
         let avgLatency = latencies.reduce(0, +) / Double(latencies.count)
 
@@ -128,18 +128,24 @@ final class GradingService {
         return min(100, max(0, score))
     }
 
-    /// Latency (15%): Average and worst-case latency
+    /// Latency (15%): Median and worst-case latency (median is more robust than mean)
     private static func calculateLatencyScore(points: [HeatmapPoint]) -> Double {
-        let latencies = points.map(\.latency).filter { $0 > 0 }
-        guard !latencies.isEmpty else { return 70 }
+        let latencies = points.map(\.latency).filter { $0 > 0 }.sorted()
+        guard !latencies.isEmpty else { return 50 } // Neutral default
 
-        let avgLatency = latencies.reduce(0, +) / Double(latencies.count)
-        let worstLatency = latencies.max() ?? 0
+        // Use median instead of mean to reduce outlier sensitivity
+        let medianLatency: Double
+        if latencies.count % 2 == 0 {
+            medianLatency = (latencies[latencies.count / 2 - 1] + latencies[latencies.count / 2]) / 2
+        } else {
+            medianLatency = latencies[latencies.count / 2]
+        }
+        let worstLatency = latencies.last ?? 0
 
         var score: Double = 100
 
-        // Average latency penalties
-        switch avgLatency {
+        // Median latency penalties
+        switch medianLatency {
         case 0..<20: break // excellent
         case 20..<50: score -= 10
         case 50..<100: score -= 25
@@ -147,7 +153,7 @@ final class GradingService {
         default: score -= 60
         }
 
-        // Worst-case penalty (smaller)
+        // Worst-case penalty (smaller weight)
         if worstLatency > 500 { score -= 15 }
         else if worstLatency > 200 { score -= 8 }
 

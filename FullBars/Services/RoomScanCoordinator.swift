@@ -629,28 +629,61 @@ final class RoomScanCoordinator {
     }
 
     private func computeGrade() -> ScanRoomGrade {
-        // Simple, transparent formula for v1. CoveragePlanningService does the
-        // fancier analysis for the whole-home report.
+        // Consolidated grading formula — aligned with GradingService weights.
+        // Signal 40%, Speed 30%, Latency 20%, BLE interference 10%.
         let strengths = samples.map { $0.signalStrength }
         guard !strengths.isEmpty else {
             return ScanRoomGrade(score: 0, letter: "F", weakSpotCount: 0, interferenceCount: 0, recommendationCount: 1)
         }
         let avg = Double(strengths.reduce(0, +)) / Double(strengths.count)
 
-        // Convert dBm to 0–100: -45 dBm → 100, -90 dBm → 0
-        let signalScore = max(0.0, min(100.0, ((avg + 90) / 45) * 100))
+        // Signal score: -30 dBm → 100 (excellent), -85 dBm → 0 (dead)
+        let signalScore = max(0.0, min(100.0, ((avg + 85) / 55) * 100))
 
-        // Speed component vs a generous baseline (200 Mbps = full points)
-        let speedScore = max(0.0, min(100.0, (downloadMbps / 200.0) * 100))
+        // Speed score: 100+ Mbps = 100, scaled linearly to 0
+        let speedScore: Double
+        if downloadMbps > 0 {
+            switch downloadMbps {
+            case 100...: speedScore = 100
+            case 50..<100: speedScore = 80 + (downloadMbps - 50) / 50 * 20
+            case 25..<50: speedScore = 65 + (downloadMbps - 25) / 25 * 15
+            case 10..<25: speedScore = 50 + (downloadMbps - 10) / 15 * 15
+            default: speedScore = max(0, downloadMbps / 10 * 50)
+            }
+        } else {
+            speedScore = 50 // Neutral default when no speed test run
+        }
 
-        // BLE congestion penalty (0–15 point deduction)
-        let blePenalty = min(15.0, Double(bleDeviceIds.count) * 0.5)
+        // Latency score from ping
+        let latencyScore: Double
+        if pingMs > 0 {
+            switch pingMs {
+            case 0..<20: latencyScore = 100
+            case 20..<50: latencyScore = 85
+            case 50..<100: latencyScore = 70
+            case 100..<200: latencyScore = 50
+            default: latencyScore = 30
+            }
+        } else {
+            latencyScore = 70 // Default when ping not measured
+        }
 
-        let combined = (signalScore * 0.65 + speedScore * 0.35) - blePenalty
-        let final = max(0, min(100, combined))
+        // BLE interference: fewer is better (0–5 = great, 30+ = congested)
+        let bleScore: Double
+        switch bleDeviceIds.count {
+        case 0..<5: bleScore = 100
+        case 5..<10: bleScore = 85
+        case 10..<20: bleScore = 70
+        case 20..<30: bleScore = 55
+        default: bleScore = 40
+        }
+
+        // Weighted combination: signal 40%, speed 30%, latency 20%, BLE 10%
+        let combined = signalScore * 0.40 + speedScore * 0.30 + latencyScore * 0.20 + bleScore * 0.10
+        let finalScore = max(0, min(100, combined))
 
         let letter: String
-        switch final {
+        switch finalScore {
         case 90...:   letter = "A"
         case 80..<90: letter = "B"
         case 70..<80: letter = "C"
@@ -658,12 +691,12 @@ final class RoomScanCoordinator {
         default:      letter = "F"
         }
 
-        let weakSpots = strengths.filter { $0 < -80 }.count
+        let weakSpots = strengths.filter { $0 < -75 }.count
         let interference = bleDeviceIds.count > 15 ? 1 : 0
-        let recommendations = (final < 80 ? 1 : 0) + (weakSpots > 2 ? 1 : 0)
+        let recommendations = (finalScore < 80 ? 1 : 0) + (weakSpots > 2 ? 1 : 0)
 
         return ScanRoomGrade(
-            score: final,
+            score: finalScore,
             letter: letter,
             weakSpotCount: weakSpots,
             interferenceCount: interference,

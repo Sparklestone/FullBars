@@ -41,6 +41,9 @@ enum AccessibilityID {
         static let roomRow           = "results.roomRow"       // append room name
         static let gradeLabel        = "results.gradeLabel"
         static let ispComparisonCard = "results.ispComparison"
+        static let floorPlanSection  = "results.floorPlan"
+        static let floorSelector     = "results.floorSelector"
+        static let heatmapToggle     = "results.heatmapToggle"
     }
 
     // MARK: - Room Detail

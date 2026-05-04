@@ -18,6 +18,36 @@ struct AppConstants {
         static let sampleInterval: TimeInterval = 1.5
         static let minPointDistance: Float = 0.3
     }
+
+    /// Centralized signal/WiFi thresholds — single source of truth across
+    /// GradingService, CoveragePlanningService, RoomDetailView, and FloorMapView.
+    struct Signal {
+        /// dBm thresholds for signal quality buckets
+        static let excellent: Int = -50   // -50 dBm and above
+        static let good: Int = -65        // -65 to -50 dBm
+        static let fair: Int = -75        // -75 to -65 dBm
+        static let weak: Int = -85        // below -75 dBm is weak; below -85 is dead
+
+        /// Weak spot threshold adapts based on room download speed.
+        /// Rooms with fast WiFi tolerate slightly weaker signal before flagging.
+        static func weakSpotThreshold(downloadMbps: Double) -> Int {
+            if downloadMbps >= 50 { return -90 }
+            if downloadMbps >= 25 { return -85 }
+            return -80
+        }
+
+        /// Download speed thresholds (Mbps) for scoring
+        static let speedExcellent: Double = 100
+        static let speedGood: Double = 50
+        static let speedFair: Double = 25
+        static let speedPoor: Double = 10
+
+        /// Latency thresholds (ms)
+        static let latencyExcellent: Double = 20
+        static let latencyGood: Double = 50
+        static let latencyFair: Double = 100
+        static let latencyPoor: Double = 200
+    }
 }
 
 // MARK: - FullBars Design System

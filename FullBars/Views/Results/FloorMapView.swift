@@ -2,23 +2,27 @@ import SwiftUI
 
 /// A visual floor-plan-style map of scanned rooms. Connected rooms are stitched
 /// together using doorway anchoring and compass-heading rotation so they align
-/// like a real blueprint. Rooms without connections fall back to a flow grid.
+/// like a real blueprint. All rooms are placed in one unified coordinate space —
+/// doorway-connected rooms snap together, others flow-layout beside the cluster.
 ///
 /// **Stitching algorithm:**
 /// 1. Rotate each room's polygon to true north using `−compassHeading`.
 /// 2. Build an adjacency graph via `Doorway.connectsToRoomId`.
 /// 3. BFS from an anchor room: for each connected pair, translate the new room
 ///    so the shared doorway points coincide.
-/// 4. Render the stitched cluster in a single GeometryReader, fitting all
-///    rooms into the available space.
-/// 5. Unconnected rooms render in a 2-column flow grid below the blueprint.
+/// 4. Auto-place any unconnected rooms in a flow row below the cluster.
+/// 5. Render ALL rooms in a single GeometryReader so they align correctly.
 struct FloorMapView: View {
     let rooms: [Room]
     let doorways: [Doorway]
     let home: HomeConfiguration?
+    var isFullScreen: Bool = false
 
     private let cyan = FullBars.Design.Colors.accentCyan
     private let bg = Color(red: 0.05, green: 0.05, blue: 0.10)
+
+    @State private var selectedFloorIndex: Int = 0
+    @State private var showHeatmapOverlay: Bool = false
 
     // MARK: - Computed layout
 
@@ -37,23 +41,115 @@ struct FloorMapView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                ForEach(Array(roomsByFloor.enumerated()), id: \.offset) { _, floor in
-                    VStack(alignment: .leading, spacing: 12) {
-                        if roomsByFloor.count > 1 {
-                            Text(floor.floorLabel)
-                                .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                                .foregroundStyle(.white)
-                                .padding(.horizontal, 4)
-                        }
+        VStack(spacing: 0) {
+            // Floor selector (only if multiple floors)
+            if roomsByFloor.count > 1 {
+                floorSelector
+            }
 
-                        floorBlueprint(rooms: floor.rooms)
-                    }
+            // Blueprint toolbar — heatmap toggle, room count
+            if !rooms.isEmpty {
+                blueprintToolbar
+            }
+
+            // Main blueprint area
+            ScrollView {
+                if roomsByFloor.indices.contains(selectedFloorIndex) {
+                    let floor = roomsByFloor[selectedFloorIndex]
+                    floorBlueprint(rooms: floor.rooms)
+                        .padding(.horizontal, isFullScreen ? 12 : 20)
+                        .padding(.top, 8)
+                } else if let first = roomsByFloor.first {
+                    floorBlueprint(rooms: first.rooms)
+                        .padding(.horizontal, isFullScreen ? 12 : 20)
+                        .padding(.top, 8)
                 }
             }
-            .padding(20)
         }
+    }
+
+    // MARK: - Floor Selector
+
+    private var floorSelector: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(Array(roomsByFloor.enumerated()), id: \.offset) { idx, floor in
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            selectedFloorIndex = idx
+                        }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "building.2")
+                                .font(.system(size: 10))
+                            Text(floor.floorLabel)
+                                .font(.system(.caption, design: .rounded).weight(.semibold))
+                            Text("(\(floor.rooms.count))")
+                                .font(.system(.caption2, design: .rounded))
+                                .foregroundStyle(selectedFloorIndex == idx ? .white.opacity(0.7) : .secondary)
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 8)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(selectedFloorIndex == idx ? cyan.opacity(0.25) : Color.white.opacity(0.06))
+                        )
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(selectedFloorIndex == idx ? cyan.opacity(0.6) : Color.clear, lineWidth: 1)
+                        )
+                        .foregroundStyle(selectedFloorIndex == idx ? .white : .secondary)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+        }
+    }
+
+    // MARK: - Blueprint Toolbar
+
+    private var blueprintToolbar: some View {
+        HStack {
+            // Room count badge
+            let floorRooms = roomsByFloor.indices.contains(selectedFloorIndex)
+                ? roomsByFloor[selectedFloorIndex].rooms
+                : rooms
+            HStack(spacing: 4) {
+                Image(systemName: "square.grid.2x2")
+                    .font(.system(size: 10))
+                Text("\(floorRooms.count) room\(floorRooms.count == 1 ? "" : "s")")
+                    .font(.system(.caption2, design: .rounded))
+            }
+            .foregroundStyle(.secondary)
+
+            Spacer()
+
+            // Heatmap overlay toggle
+            Button {
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    showHeatmapOverlay.toggle()
+                }
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: showHeatmapOverlay ? "waveform.badge.minus" : "waveform.badge.plus")
+                        .font(.system(size: 11))
+                    Text(showHeatmapOverlay ? "Grades" : "Signal")
+                        .font(.system(.caption2, design: .rounded).weight(.medium))
+                }
+                .foregroundStyle(showHeatmapOverlay ? cyan : .secondary)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 5)
+                .background(
+                    Capsule()
+                        .fill(showHeatmapOverlay ? cyan.opacity(0.15) : Color.white.opacity(0.06))
+                )
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.horizontal, 20)
+        .padding(.bottom, 4)
     }
 
     // MARK: - Floor Blueprint
@@ -63,12 +159,11 @@ struct FloorMapView: View {
         let layout = BlueprintLayout.compute(rooms: rooms, doorways: doorways)
 
         return VStack(alignment: .leading, spacing: 16) {
-            // Stitched cluster (if any rooms have connections)
             if !layout.stitchedRooms.isEmpty {
-                stitchedClusterView(layout: layout)
+                stitchedClusterView(layout: layout, floorRooms: rooms)
             }
 
-            // Unconnected rooms in flow grid
+            // Unconnected rooms in flow grid (shouldn't trigger now, but kept as fallback)
             if !layout.unconnectedRooms.isEmpty {
                 unconnectedGrid(rooms: layout.unconnectedRooms)
             }
@@ -80,14 +175,20 @@ struct FloorMapView: View {
     /// Renders the stitched blueprint cluster in a single coordinate space.
     /// All room polygons are drawn with absolute coordinates inside one ZStack
     /// so they align correctly relative to each other.
-    private func stitchedClusterView(layout: BlueprintLayout) -> some View {
+    private func stitchedClusterView(layout: BlueprintLayout, floorRooms: [Room]) -> some View {
         GeometryReader { geo in
             let fitted = layout.fitToSize(geo.size, padding: 16)
 
             ZStack {
                 // Draw each room's filled polygon + stroke
                 ForEach(fitted.roomFrames) { frame in
-                    roomPolygon(frame: frame)
+                    roomPolygon(frame: frame, showSignal: showHeatmapOverlay)
+                }
+
+                // Doorway indicators between connected rooms
+                ForEach(fitted.roomFrames) { frame in
+                    // Grade badge — top-right of each room's bounding box
+                    gradeBadge(for: frame)
                 }
 
                 // Overlay tappable labels at each room's centre
@@ -102,7 +203,33 @@ struct FloorMapView: View {
                 }
             }
         }
-        .frame(height: max(250, CGFloat(layout.stitchedRooms.count) * 80))
+        .frame(height: dynamicHeight(roomCount: layout.stitchedRooms.count))
+        .background(Color.white.opacity(0.03))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+    }
+
+    /// Dynamic height based on room count — scales up for more rooms
+    private func dynamicHeight(roomCount: Int) -> CGFloat {
+        if isFullScreen {
+            return max(350, min(600, CGFloat(roomCount) * 100 + 150))
+        }
+        return max(260, min(450, CGFloat(roomCount) * 70 + 120))
+    }
+
+    /// Grade badge positioned at the top-right of a room's bounding box
+    private func gradeBadge(for frame: BlueprintLayout.RoomFrame) -> some View {
+        let grade = frame.room.gradeLetterRaw
+        let color = gradeColor(grade)
+
+        return Text(grade.isEmpty ? "—" : grade)
+            .font(.system(size: 9, design: .rounded).weight(.heavy))
+            .foregroundStyle(grade.isEmpty ? Color.secondary : Color.white)
+            .frame(width: 18, height: 18)
+            .background(
+                Circle()
+                    .fill(grade.isEmpty ? Color.secondary.opacity(0.3) : color.opacity(0.85))
+            )
+            .position(x: frame.boundingBox.maxX - 4, y: frame.boundingBox.minY + 4)
     }
 
     /// Compact label shown at the centre of each stitched room polygon.
@@ -148,13 +275,34 @@ struct FloorMapView: View {
     }
 
     /// Renders a single room's polygon fill + stroke.
+    /// In signal mode, fill color is based on average signal strength.
+    /// In grade mode, fill color matches the room's letter grade.
     @ViewBuilder
-    private func roomPolygon(frame: BlueprintLayout.RoomFrame) -> some View {
-        let color = gradeColor(frame.room.gradeLetterRaw)
-        frame.path
-            .fill(color.opacity(0.12))
-        frame.path
-            .stroke(color.opacity(0.6), lineWidth: 1.5)
+    private func roomPolygon(frame: BlueprintLayout.RoomFrame, showSignal: Bool) -> some View {
+        if showSignal {
+            let signalColor = signalScoreColor(frame.room.gradeScore)
+            frame.path
+                .fill(signalColor.opacity(0.25))
+            frame.path
+                .stroke(signalColor.opacity(0.7), lineWidth: 1.5)
+        } else {
+            let color = gradeColor(frame.room.gradeLetterRaw)
+            frame.path
+                .fill(color.opacity(0.12))
+            frame.path
+                .stroke(color.opacity(0.6), lineWidth: 1.5)
+        }
+    }
+
+    /// Maps a room's grade score (0–100) to a signal-style color for the heatmap overlay
+    private func signalScoreColor(_ score: Double) -> Color {
+        switch score {
+        case 85...:       return .green        // Excellent
+        case 70..<85:     return .mint          // Good
+        case 55..<70:     return .yellow        // Fair
+        case 40..<55:     return .orange        // Weak
+        default:          return .red           // Very weak / dead
+        }
     }
 
     // MARK: - Unconnected Grid
@@ -368,16 +516,21 @@ struct BlueprintLayout {
     // MARK: - Compute
 
     /// Build the stitched layout from rooms and doorways.
+    /// All rooms are placed in the blueprint — connected rooms use doorway alignment,
+    /// unconnected rooms are auto-placed in a flow layout adjacent to the cluster.
     static func compute(rooms: [Room], doorways: [Doorway]) -> BlueprintLayout {
+        guard !rooms.isEmpty else {
+            return BlueprintLayout(stitchedRooms: [], unconnectedRooms: [])
+        }
+
         let roomMap = Dictionary(uniqueKeysWithValues: rooms.map { ($0.id, $0) })
 
-        // Build adjacency: for each pair of rooms that share a doorway connection,
-        // record both doorway positions (in their respective room-local coords).
+        // Build adjacency via doorway connections
         struct DoorwayLink {
             let fromRoomId: UUID
             let toRoomId: UUID
-            let fromPosition: CGPoint  // doorway in fromRoom's local coords
-            let toPosition: CGPoint    // matching doorway in toRoom's local coords
+            let fromPosition: CGPoint
+            let toPosition: CGPoint
         }
 
         var links: [DoorwayLink] = []
@@ -388,14 +541,11 @@ struct BlueprintLayout {
                   roomMap[doorway.roomId] != nil,
                   roomMap[targetId] != nil else { continue }
 
-            // Find the reciprocal doorway in the target room that connects back
             let reciprocal = doorways.first {
                 $0.roomId == targetId && $0.connectsToRoomId == doorway.roomId
             }
-
             guard let recip = reciprocal else { continue }
 
-            // Only add the link once (from the room with the smaller UUID)
             if doorway.roomId.uuidString < targetId.uuidString {
                 links.append(DoorwayLink(
                     fromRoomId: doorway.roomId,
@@ -404,118 +554,134 @@ struct BlueprintLayout {
                     toPosition: CGPoint(x: CGFloat(recip.x), y: CGFloat(recip.z))
                 ))
             }
-
             adjacency[doorway.roomId, default: []].insert(targetId)
             adjacency[targetId, default: []].insert(doorway.roomId)
         }
 
-        // Rooms with at least one valid connection
-        let connectedIds = Set(adjacency.keys)
-        guard !connectedIds.isEmpty else {
-            return BlueprintLayout(stitchedRooms: [], unconnectedRooms: rooms)
-        }
-
-        // BFS to place rooms. Start with the room that has the most connections
-        // (heuristic: produces a more balanced layout).
-        let anchorId = connectedIds.max(by: {
-            (adjacency[$0]?.count ?? 0) < (adjacency[$1]?.count ?? 0)
-        })!
-
-        // Each room stores a translation offset. The anchor sits at (0,0) in
-        // world space, meaning its north-rotated corners are used directly.
-        // For each subsequent room, we compute a translation that aligns its
-        // shared doorway with the already-placed neighbor's doorway.
-        //
-        // Key insight: rotateToNorth() rotates room-local coords around the
-        // room-local origin (0,0) — which is where ARKit placed the session
-        // origin for that scan. The doorway position is also in room-local
-        // coords, so rotating it the same way gives its north-rotated position.
-        // We then just need a per-room translation vector.
-
         struct RoomPlacement {
             let room: Room
-            let northCorners: [CGPoint]   // corners rotated to north (untranslated)
-            let translation: CGPoint       // world offset applied to all points
+            let northCorners: [CGPoint]
+            let translation: CGPoint
         }
 
         var placements: [UUID: RoomPlacement] = [:]
-        var queue: [UUID] = [anchorId]
-        var visited: Set<UUID> = [anchorId]
 
-        // Place the anchor room at origin
-        if let anchor = roomMap[anchorId] {
-            let nc = rotateToNorth(room: anchor)
-            placements[anchorId] = RoomPlacement(room: anchor, northCorners: nc, translation: .zero)
-        }
+        // --- Phase 1: Place doorway-connected rooms via BFS ---
+        let connectedIds = Set(adjacency.keys)
+        if !connectedIds.isEmpty {
+            let anchorId = connectedIds.max(by: {
+                (adjacency[$0]?.count ?? 0) < (adjacency[$1]?.count ?? 0)
+            })!
 
-        while !queue.isEmpty {
-            let currentId = queue.removeFirst()
-            guard let neighbors = adjacency[currentId] else { continue }
+            var queue: [UUID] = [anchorId]
+            var visited: Set<UUID> = [anchorId]
 
-            for neighborId in neighbors where !visited.contains(neighborId) {
-                visited.insert(neighborId)
+            if let anchor = roomMap[anchorId] {
+                let nc = rotateToNorth(room: anchor)
+                placements[anchorId] = RoomPlacement(room: anchor, northCorners: nc, translation: .zero)
+            }
 
-                let link = links.first {
-                    ($0.fromRoomId == currentId && $0.toRoomId == neighborId) ||
-                    ($0.fromRoomId == neighborId && $0.toRoomId == currentId)
+            while !queue.isEmpty {
+                let currentId = queue.removeFirst()
+                guard let neighbors = adjacency[currentId] else { continue }
+
+                for neighborId in neighbors where !visited.contains(neighborId) {
+                    visited.insert(neighborId)
+
+                    let link = links.first {
+                        ($0.fromRoomId == currentId && $0.toRoomId == neighborId) ||
+                        ($0.fromRoomId == neighborId && $0.toRoomId == currentId)
+                    }
+
+                    guard let link,
+                          let currentRoom = roomMap[currentId],
+                          let neighborRoom = roomMap[neighborId],
+                          let currentPlacement = placements[currentId] else { continue }
+
+                    let (currentDoorLocal, neighborDoorLocal): (CGPoint, CGPoint)
+                    if link.fromRoomId == currentId {
+                        currentDoorLocal = link.fromPosition
+                        neighborDoorLocal = link.toPosition
+                    } else {
+                        currentDoorLocal = link.toPosition
+                        neighborDoorLocal = link.fromPosition
+                    }
+
+                    let currentAngle = -currentRoom.compassHeading * .pi / 180
+                    let neighborAngle = -neighborRoom.compassHeading * .pi / 180
+                    let currentDoorNorth = rotatePoint(currentDoorLocal, by: currentAngle)
+                    let neighborDoorNorth = rotatePoint(neighborDoorLocal, by: neighborAngle)
+
+                    let currentDoorWorld = CGPoint(
+                        x: currentDoorNorth.x + currentPlacement.translation.x,
+                        y: currentDoorNorth.y + currentPlacement.translation.y
+                    )
+                    let neighborTranslation = CGPoint(
+                        x: currentDoorWorld.x - neighborDoorNorth.x,
+                        y: currentDoorWorld.y - neighborDoorNorth.y
+                    )
+
+                    let nc = rotateToNorth(room: neighborRoom)
+                    placements[neighborId] = RoomPlacement(
+                        room: neighborRoom, northCorners: nc, translation: neighborTranslation
+                    )
+                    queue.append(neighborId)
                 }
-
-                guard let link,
-                      let currentRoom = roomMap[currentId],
-                      let neighborRoom = roomMap[neighborId],
-                      let currentPlacement = placements[currentId] else { continue }
-
-                // Determine which doorway position belongs to which room
-                let (currentDoorLocal, neighborDoorLocal): (CGPoint, CGPoint)
-                if link.fromRoomId == currentId {
-                    currentDoorLocal = link.fromPosition
-                    neighborDoorLocal = link.toPosition
-                } else {
-                    currentDoorLocal = link.toPosition
-                    neighborDoorLocal = link.fromPosition
-                }
-
-                // Rotate doorway positions to north (same rotation as corners)
-                let currentDoorNorth = rotatePoint(
-                    currentDoorLocal, by: -0.0 * .pi / 180
-                )
-                let neighborDoorNorth = rotatePoint(
-                    neighborDoorLocal, by: -0.0 * .pi / 180
-                )
-
-                // Current doorway in world space = north position + room translation
-                let currentDoorWorld = CGPoint(
-                    x: currentDoorNorth.x + currentPlacement.translation.x,
-                    y: currentDoorNorth.y + currentPlacement.translation.y
-                )
-
-                // Neighbor's translation: move so neighborDoorNorth lands on currentDoorWorld
-                let neighborTranslation = CGPoint(
-                    x: currentDoorWorld.x - neighborDoorNorth.x,
-                    y: currentDoorWorld.y - neighborDoorNorth.y
-                )
-
-                let nc = rotateToNorth(room: neighborRoom)
-                placements[neighborId] = RoomPlacement(
-                    room: neighborRoom, northCorners: nc, translation: neighborTranslation
-                )
-                queue.append(neighborId)
             }
         }
 
-        // Convert placements to PlacedRooms with world corners
-        var placed: [UUID: PlacedRoom] = [:]
-        for (id, p) in placements {
+        // --- Phase 2: Auto-place unconnected rooms in a flow layout ---
+        // All rooms get north-aligned and placed so the entire floor is one map.
+        let unplacedRooms = rooms.filter { placements[$0.id] == nil }
+
+        if !unplacedRooms.isEmpty {
+            // Find bounding box of already-placed rooms (if any)
+            let allPlacedCorners = placements.values.flatMap { p in
+                p.northCorners.map { CGPoint(x: $0.x + p.translation.x, y: $0.y + p.translation.y) }
+            }
+            var clusterBounds = boundingRect(allPlacedCorners)
+
+            // If no rooms placed yet, start at origin
+            if clusterBounds == .zero { clusterBounds = CGRect(x: 0, y: 0, width: 0, height: 0) }
+
+            // Place unconnected rooms in a row below the cluster
+            let gap: CGFloat = 1.5 // meters gap between rooms
+            var cursorX = clusterBounds.minX
+            let cursorY = clusterBounds.maxY + gap
+
+            for room in unplacedRooms {
+                let nc = rotateToNorth(room: room)
+                guard !nc.isEmpty else { continue }
+
+                let roomBounds = boundingRect(nc)
+
+                // Translate so room's top-left aligns with cursor
+                let tx = cursorX - roomBounds.minX
+                let ty = cursorY - roomBounds.minY
+
+                placements[room.id] = RoomPlacement(
+                    room: room, northCorners: nc, translation: CGPoint(x: tx, y: ty)
+                )
+
+                // Advance cursor right
+                cursorX += roomBounds.width + gap
+            }
+        }
+
+        // Convert all placements to PlacedRooms
+        var allPlaced: [PlacedRoom] = []
+        for room in rooms {
+            guard let p = placements[room.id] else { continue }
             let worldCorners = p.northCorners.map {
                 CGPoint(x: $0.x + p.translation.x, y: $0.y + p.translation.y)
             }
-            placed[id] = PlacedRoom(room: p.room, worldCorners: worldCorners)
+            allPlaced.append(PlacedRoom(room: p.room, worldCorners: worldCorners))
         }
 
-        let unconnected = rooms.filter { !connectedIds.contains($0.id) }
+        // All rooms are now "stitched" — none are unconnected in the view
         return BlueprintLayout(
-            stitchedRooms: Array(placed.values),
-            unconnectedRooms: unconnected
+            stitchedRooms: allPlaced,
+            unconnectedRooms: []
         )
     }
 
@@ -587,7 +753,7 @@ struct BlueprintLayout {
     private static func rotateToNorth(room: Room) -> [CGPoint] {
         let corners = room.corners
         guard corners.count >= 3 else { return [] }
-        let angleRad = -0.0 * .pi / 180
+        let angleRad = -room.compassHeading * .pi / 180
 
         return corners.map { corner in
             let pt = CGPoint(x: CGFloat(corner.0), y: CGFloat(corner.1))

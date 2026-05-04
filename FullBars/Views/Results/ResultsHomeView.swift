@@ -85,13 +85,15 @@ struct ResultsHomeView: View {
                 } else {
                     VStack(spacing: 20) {
                         overallCard
+
+                        // Floor plan — primary visual (show for 1+ rooms)
+                        if let home {
+                            floorMapSection(home)
+                        }
+
                         shareBadgeCTA
                         fullReportButton
                         roomGrades
-                        // Floor plan map
-                        if homeRooms.count >= 2, let home {
-                            floorMapSection(home)
-                        }
 
                         // WiFi Report Card (shareable grade summary)
                         if latestGrade != nil {
@@ -175,15 +177,26 @@ struct ResultsHomeView: View {
     // MARK: - Floor Map Section
 
     private func floorMapSection(_ home: HomeConfiguration) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Floor Plan")
-                .font(.system(.headline, design: .rounded))
-                .foregroundStyle(.white)
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("Floor Plan")
+                    .font(.system(.headline, design: .rounded))
+                    .foregroundStyle(.white)
+                Spacer()
+                if homeRooms.count > 1 {
+                    Text("Tap a room for details")
+                        .font(.system(.caption2, design: .rounded))
+                        .foregroundStyle(.secondary)
+                }
+            }
 
             FloorMapView(rooms: homeRooms, doorways: homeDoorways, home: home)
-                .frame(height: 260)
                 .background(Color.white.opacity(0.03))
-                .cornerRadius(14)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(Color.white.opacity(0.06), lineWidth: 1)
+                )
         }
     }
 
