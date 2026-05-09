@@ -21,7 +21,7 @@ struct RoomDetailView: View {
 
     @State private var showHeatmap: Bool = true
     @State private var showWeakSpots: Bool = true
-    @State private var showPainted: Bool = true
+    // showPainted removed — painted coverage layer was visual clutter
     @State private var showDevices: Bool = true
     @State private var showTechnicalDetails: Bool = (UserDefaults.standard.string(forKey: "displayMode") ?? DisplayMode.basic.rawValue) == DisplayMode.technical.rawValue
     @State private var mapAlignedToNorth: Bool = true
@@ -576,7 +576,6 @@ struct RoomDetailView: View {
                 weakSpots: showWeakSpots ? liveWeakSpots : [],
                 devices: showDevices ? devices : [],
                 doorways: doorways,
-                showPainted: showPainted,
                 signalRange: houseSignalRange
             )
             .rotationEffect(mapRotation)
@@ -600,7 +599,6 @@ struct RoomDetailView: View {
                 .foregroundStyle(.white)
 
             VStack(spacing: 8) {
-                layerToggle(label: "Painted coverage", systemImage: "paintbrush.fill", isOn: $showPainted, tint: .gray)
                 layerToggle(label: "Signal heatmap", systemImage: "wifi", isOn: $showHeatmap, tint: cyan)
                     .accessibilityIdentifier(AccessibilityID.RoomDetail.heatmapToggle)
                 layerToggle(label: "Weak spots", systemImage: "exclamationmark.triangle.fill", isOn: $showWeakSpots, tint: .orange)
@@ -1144,7 +1142,6 @@ struct RoomMapCanvas: View {
     let weakSpots: [WeakSpot]
     let devices: [DevicePlacement]
     let doorways: [Doorway]
-    let showPainted: Bool
     var signalRange: SignalRange? = nil
 
     var body: some View {
@@ -1193,19 +1190,7 @@ struct RoomMapCanvas: View {
                     ctx.stroke(path, with: .color(Color.white.opacity(0.35)), lineWidth: 1.5)
                 }
 
-                // Layer 2: painted cells
-                if showPainted {
-                    Canvas { ctx, _ in
-                        let cellPx = CGFloat(cellSize) * scale
-                        for (gx, gz) in paintedCells {
-                            let wx = Double(gx) * cellSize
-                            let wz = Double(gz) * cellSize
-                            let origin = project(wx, wz)
-                            let rect = CGRect(x: origin.x, y: origin.y, width: cellPx, height: cellPx)
-                            ctx.fill(Path(rect), with: .color(Color.gray.opacity(0.22)))
-                        }
-                    }
-                }
+                // Layer 2: painted cells (removed — was visual clutter)
 
                 // Layer 3: IDW area-based signal heatmap
                 if points.count >= 3, let range = signalRange {
@@ -1219,15 +1204,7 @@ struct RoomMapCanvas: View {
                     }
                 }
 
-                // Layer 3b: small sample dots on top of heatmap for reference
-                Canvas { ctx, _ in
-                    let dotBlue = Color(red: 0.45, green: 0.68, blue: 1.0)
-                    for p in points {
-                        let c = project(p.x, p.z)
-                        let dot = CGRect(x: c.x - 2, y: c.y - 2, width: 4, height: 4)
-                        ctx.fill(Path(ellipseIn: dot), with: .color(dotBlue.opacity(0.5)))
-                    }
-                }
+                // Layer 3b: sample dots removed — heatmap now covers full room
 
                 // Layer 4: weak spot overlays from CoveragePlanningService
                 Canvas { ctx, _ in
@@ -1236,12 +1213,29 @@ struct RoomMapCanvas: View {
                     }
                 }
 
-                // Layer 5: doorways
-                ForEach(doorways) { d in
+                // Layer 5: entrance label (first doorway = entrance from scan)
+                if let entrance = doorways.first {
+                    let p = project(entrance.x, entrance.z)
+                    VStack(spacing: 2) {
+                        Image(systemName: "door.left.hand.open")
+                            .font(.system(size: 18, weight: .bold))
+                            .foregroundStyle(.orange)
+                        Text("Entrance")
+                            .font(.system(size: 10, weight: .bold, design: .rounded))
+                            .foregroundStyle(.orange)
+                    }
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 3)
+                    .background(Color.black.opacity(0.6))
+                    .cornerRadius(6)
+                    .position(p)
+                }
+                // Additional doorways (not entrance)
+                ForEach(Array(doorways.dropFirst())) { d in
                     let p = project(d.x, d.z)
                     Image(systemName: "door.left.hand.open")
                         .font(.system(size: 14, weight: .bold))
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(.orange.opacity(0.6))
                         .position(p)
                 }
 
@@ -1297,8 +1291,8 @@ struct RoomMapCanvas: View {
         // render continuously. The weak spot overlay draws on top as a separate layer.
         let dzRegions: [(center: CGPoint, radius: CGFloat)] = []
 
-        let power: Double = 3.0     // Higher power = more local influence, better variability
-        let maxRadius: CGFloat = 50  // Tighter radius so samples don't bleed across the room
+        let power: Double = 2.5     // Moderate power for smooth blending across the room
+        let maxRadius: CGFloat = 300 // Large radius so heatmap fills the entire room
 
         // Use whole-house relative signal range for green→orange coloring
         let range = signalRange
@@ -1348,9 +1342,9 @@ struct RoomMapCanvas: View {
                 // Green→orange relative color from whole-house range
                 let cellColor = SignalRange.relativeColor(for: dBm, range: range)
 
-                // Opacity: stronger signal = more opaque
+                // Opacity: consistent fill so heatmap covers the room visually
                 let normalised = min(1.0, max(0.0, (interpolated + 90) / 50))
-                let opacity = 0.20 + normalised * 0.45
+                let opacity = 0.40 + normalised * 0.35
 
                 let rect = CGRect(x: CGFloat(col) * cellPx, y: CGFloat(row) * cellPx, width: cellPx, height: cellPx)
                 ctx.fill(Path(rect), with: .color(cellColor.opacity(opacity)))
