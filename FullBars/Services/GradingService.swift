@@ -18,7 +18,11 @@ final class GradingService {
             return SpaceGrade(sessionId: sessionId, durationSeconds: durationSeconds)
         }
 
-        let signalCoverage = calculateSignalCoverage(points: points)
+        // Compute average download speed first so we can pass it to signal coverage
+        let dlSpeeds = points.map(\.downloadSpeed).filter { $0 > 0 }
+        let roomDownloadMbps = dlSpeeds.isEmpty ? 0 : dlSpeeds.reduce(0, +) / Double(dlSpeeds.count)
+
+        let signalCoverage = calculateSignalCoverage(points: points, roomDownloadMbps: roomDownloadMbps)
         let speedPerformance = calculateSpeedPerformance(points: points)
         let reliability = calculateReliability(points: points)
         let latency = calculateLatencyScore(points: points)
@@ -63,7 +67,7 @@ final class GradingService {
 
     /// Signal Coverage (30%): Percentage of points with "good or better" signal,
     /// with additional penalty for detected weak spots.
-    private static func calculateSignalCoverage(points: [HeatmapPoint]) -> Double {
+    private static func calculateSignalCoverage(points: [HeatmapPoint], roomDownloadMbps: Double = 0) -> Double {
         let goodThreshold = AppConstants.Signal.good      // -65
         let fairThreshold = AppConstants.Signal.fair       // -75
         let goodCount = points.filter { $0.signalStrength >= goodThreshold }.count
@@ -73,8 +77,8 @@ final class GradingService {
         // Good points worth full marks, fair points worth half
         var score = (Double(goodCount) + Double(fairCount) * 0.5) / max(1, total) * 100
 
-        // Weak spot penalty: detect clusters of very weak signal and penalize
-        let weakSpots = CoveragePlanningService.detectWeakSpots(points: points)
+        // Weak spot penalty: detect clusters using speed-aware thresholds
+        let weakSpots = CoveragePlanningService.detectWeakSpots(points: points, roomDownloadMbps: roomDownloadMbps)
         let criticalCount = weakSpots.filter { $0.severity == .critical }.count
         let severeCount = weakSpots.filter { $0.severity == .severe }.count
         score -= Double(criticalCount) * 8  // -8 per critical weak spot

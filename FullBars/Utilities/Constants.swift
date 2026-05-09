@@ -31,6 +31,7 @@ struct AppConstants {
         /// Weak spot threshold adapts based on room download speed.
         /// Rooms with fast WiFi tolerate slightly weaker signal before flagging.
         static func weakSpotThreshold(downloadMbps: Double) -> Int {
+            if downloadMbps >= 100 { return -95 }  // excellent WiFi — only true dead zones
             if downloadMbps >= 50 { return -90 }
             if downloadMbps >= 25 { return -85 }
             return -80

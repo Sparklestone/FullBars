@@ -691,7 +691,13 @@ final class RoomScanCoordinator {
         default:      letter = "F"
         }
 
-        let weakSpots = strengths.filter { $0 < -75 }.count
+        // Weak spot count adapts to download speed — fast rooms tolerate more signal variation
+        let weakThreshold: Int
+        if downloadMbps >= 100 { weakThreshold = -95 }
+        else if downloadMbps >= 50 { weakThreshold = -90 }
+        else if downloadMbps >= 25 { weakThreshold = -85 }
+        else { weakThreshold = -75 }
+        let weakSpots = strengths.filter { $0 < weakThreshold }.count
         let interference = bleDeviceIds.count > 15 ? 1 : 0
         let recommendations = (finalScore < 80 ? 1 : 0) + (weakSpots > 2 ? 1 : 0)
 

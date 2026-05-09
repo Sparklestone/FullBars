@@ -1224,8 +1224,11 @@ struct RoomMapCanvas: View {
             return (pos, Double(pt.signalStrength))
         }
 
-        // Pre-compute weak spot regions so we can leave gaps in the heatmap
-        let dzRegions = weakSpotRegions(project: project, scale: scale)
+        // Pre-compute weak spot regions so we can leave gaps in the heatmap.
+        // For rooms with good download speed (≥50 Mbps), skip gap masking —
+        // transient signal dips don't warrant visual holes in an otherwise healthy heatmap.
+        let skipWeakSpotMasking = room.downloadMbps >= 50
+        let dzRegions = skipWeakSpotMasking ? [] : weakSpotRegions(project: project, scale: scale)
 
         let power: Double = 3.0     // Higher power = more local influence, better variability
         let maxRadius: CGFloat = 50  // Tighter radius so samples don't bleed across the room

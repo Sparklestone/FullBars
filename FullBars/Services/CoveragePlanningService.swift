@@ -14,8 +14,9 @@ final class CoveragePlanningService {
     private static let weakSpotModerateThreshold: Int = -80   // weak — streaming/video calls unreliable
     private static let goodSignalThreshold: Int = -65
     private static let clusterRadiusMeters: Double = 1.5   // group nearby weak points (tight clusters)
-    private static let minClusterSize: Int = 3              // need ≥3 weak points to form a weak spot
-    private static let maxWeakSpotRadiusMeters: Double = 3.0 // cap how large a single weak spot zone can be
+    private static let minClusterSizeDefault: Int = 3       // need ≥3 weak points to form a weak spot
+    private static let minClusterSizeFastRoom: Int = 5      // need ≥5 points for rooms with good speed (reduces transient noise)
+    private static let maxWeakSpotRadiusMeters: Double = 2.0 // cap how large a single weak spot zone can be
     private static let meshCoverageRadius: Double = 8.0     // typical mesh node reach
 
     // MARK: - Full Analysis
@@ -66,15 +67,23 @@ final class CoveragePlanningService {
     /// since the WiFi is clearly functional despite lower RSSI.
     static func detectWeakSpots(points: [HeatmapPoint], roomDownloadMbps: Double = 0) -> [WeakSpot] {
         // Adapt threshold based on actual speed performance:
-        // If the room gets ≥50 Mbps, signal is clearly usable — only flag truly dead areas.
+        // If the room gets ≥100 Mbps, WiFi is excellent — only flag complete dead zones.
+        // If ≥50 Mbps, signal is clearly usable — only flag truly dead areas.
         // If ≥25 Mbps, shift threshold down by 5 dBm.
         let effectiveThreshold: Int
-        if roomDownloadMbps >= 50 {
-            effectiveThreshold = weakSpotCriticalThreshold  // -90 dBm — only truly dead areas
+        let effectiveMinCluster: Int
+        if roomDownloadMbps >= 100 {
+            effectiveThreshold = -95                         // essentially no signal at all
+            effectiveMinCluster = minClusterSizeFastRoom     // 5 points — ignore transient dips
+        } else if roomDownloadMbps >= 50 {
+            effectiveThreshold = weakSpotCriticalThreshold   // -90 dBm — only truly dead areas
+            effectiveMinCluster = minClusterSizeFastRoom     // 5 points — ignore transient dips
         } else if roomDownloadMbps >= 25 {
             effectiveThreshold = weakSpotSevereThreshold     // -85 dBm
+            effectiveMinCluster = minClusterSizeDefault      // 3 points
         } else {
             effectiveThreshold = weakSpotModerateThreshold   // -80 dBm (default)
+            effectiveMinCluster = minClusterSizeDefault      // 3 points
         }
 
         // Filter to weak points using the effective threshold
@@ -109,8 +118,9 @@ final class CoveragePlanningService {
                 let avgZ = cluster.map { $0.z }.reduce(0, +) / Double(cluster.count)
                 let avgSignal = cluster.map { $0.signalStrength }.reduce(0, +) / cluster.count
 
-                // Skip clusters that are too small — isolated weak readings are noise
-                guard cluster.count >= minClusterSize else { continue }
+                // Skip clusters that are too small — isolated weak readings are noise.
+                // Fast rooms require more points to avoid flagging transient dips.
+                guard cluster.count >= effectiveMinCluster else { continue }
 
                 // Determine radius from point spread, capped to avoid room-sized blobs
                 let maxDist = cluster.map { p -> Double in
