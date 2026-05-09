@@ -30,11 +30,13 @@ struct AppConstants {
 
         /// Weak spot threshold adapts based on room download speed.
         /// Rooms with fast WiFi tolerate slightly weaker signal before flagging.
+        /// Weak spot threshold: only flag areas where WiFi genuinely doesn't work.
+        /// If the room performs at moderate+ level (≥25 Mbps), momentary RSSI dips
+        /// are phone orientation / body blocking, not real coverage gaps.
         static func weakSpotThreshold(downloadMbps: Double) -> Int {
-            if downloadMbps >= 100 { return -95 }  // excellent WiFi — only true dead zones
-            if downloadMbps >= 50 { return -90 }
-            if downloadMbps >= 25 { return -85 }
-            return -80
+            if downloadMbps >= 25 { return -95 }   // WiFi works — only flag dead zones
+            if downloadMbps >= 10 { return -90 }   // basic browsing — flag truly dead areas
+            return -85                              // poor/unmeasured — flag barely usable areas
         }
 
         /// Download speed thresholds (Mbps) for scoring

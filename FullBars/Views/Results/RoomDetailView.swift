@@ -25,6 +25,7 @@ struct RoomDetailView: View {
     @State private var showDevices: Bool = true
     @State private var showTechnicalDetails: Bool = (UserDefaults.standard.string(forKey: "displayMode") ?? DisplayMode.basic.rawValue) == DisplayMode.technical.rawValue
     @State private var mapAlignedToNorth: Bool = true
+    @State private var showDeepScan: Bool = false
 
     private let cyan = FullBars.Design.Colors.accentCyan
     private let bg = Color(red: 0.05, green: 0.05, blue: 0.10)
@@ -147,6 +148,8 @@ struct RoomDetailView: View {
                         technicalDetailsCard
                     }
 
+                    deepScanOption
+
                     if history.count > 1 { historyCard }
                     recommendationsCard
                 }
@@ -156,6 +159,9 @@ struct RoomDetailView: View {
         .navigationTitle(room.displayName)
         .navigationBarTitleDisplayMode(.inline)
         .preferredColorScheme(.dark)
+        .fullScreenCover(isPresented: $showDeepScan) {
+            RoomScanView(room: room, startInDeepScan: true)
+        }
     }
 
     // MARK: - Grade card
@@ -641,6 +647,69 @@ struct RoomDetailView: View {
         .padding(14)
         .background(Color.white.opacity(0.05))
         .cornerRadius(12)
+    }
+
+    // MARK: - Deep Scan (Pro)
+
+    private var deepScanOption: some View {
+        Group {
+            if subs.isPro {
+                Button {
+                    showDeepScan = true
+                } label: {
+                    HStack(spacing: 10) {
+                        Image(systemName: "antenna.radiowaves.left.and.right")
+                            .foregroundStyle(cyan)
+                            .frame(width: 22)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Deep Scan")
+                                .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                                .foregroundStyle(.white)
+                            Text("Walk the room for a high-resolution heatmap")
+                                .font(.system(.caption, design: .rounded))
+                                .foregroundStyle(.secondary)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    .padding(14)
+                    .background(Color.white.opacity(0.05))
+                    .cornerRadius(FullBars.Design.Layout.cornerRadius)
+                }
+            } else {
+                HStack(spacing: 10) {
+                    Image(systemName: "antenna.radiowaves.left.and.right")
+                        .foregroundStyle(.secondary)
+                        .frame(width: 22)
+                    VStack(alignment: .leading, spacing: 2) {
+                        HStack(spacing: 6) {
+                            Text("Deep Scan")
+                                .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                                .foregroundStyle(.white)
+                            Text("PRO")
+                                .font(.system(.caption2, design: .rounded, weight: .bold))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(cyan.opacity(0.3))
+                                .cornerRadius(4)
+                        }
+                        Text("High-resolution heatmap with precise weak spot detection")
+                            .font(.system(.caption, design: .rounded))
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Image(systemName: "lock.fill")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(14)
+                .background(Color.white.opacity(0.05))
+                .cornerRadius(FullBars.Design.Layout.cornerRadius)
+            }
+        }
     }
 
     // MARK: - Technical details card (shown when per-room toggle is on)
@@ -1224,11 +1293,9 @@ struct RoomMapCanvas: View {
             return (pos, Double(pt.signalStrength))
         }
 
-        // Pre-compute weak spot regions so we can leave gaps in the heatmap.
-        // For rooms with good download speed (≥50 Mbps), skip gap masking —
-        // transient signal dips don't warrant visual holes in an otherwise healthy heatmap.
-        let skipWeakSpotMasking = room.downloadMbps >= 50
-        let dzRegions = skipWeakSpotMasking ? [] : weakSpotRegions(project: project, scale: scale)
+        // Never punch holes in the heatmap for weak spots — the heatmap should
+        // render continuously. The weak spot overlay draws on top as a separate layer.
+        let dzRegions: [(center: CGPoint, radius: CGFloat)] = []
 
         let power: Double = 3.0     // Higher power = more local influence, better variability
         let maxRadius: CGFloat = 50  // Tighter radius so samples don't bleed across the room

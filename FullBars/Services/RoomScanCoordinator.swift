@@ -116,7 +116,10 @@ final class RoomScanCoordinator {
 
     // Session identifier for this scan
     let sessionId = UUID()
-    let roomId = UUID()
+    var roomId = UUID()
+
+    /// When doing a deep scan for an existing room, store its ID so save() can update instead of insert.
+    var existingRoomId: UUID? = nil
 
     // MARK: - Motion derived state
 
@@ -213,6 +216,40 @@ final class RoomScanCoordinator {
         // Start paint tracking from the very beginning so we capture coverage
         // as the user walks between steps
         startBackgroundPainting()
+    }
+
+    /// Start a deep scan for an existing room (launched from Results).
+    /// Loads the room's identity/shape data and jumps straight to the deep scan phase.
+    func startDeepScanForExistingRoom(home: HomeConfiguration, room: Room) {
+        self.homeId = home.id
+        self.existingRoomId = room.id
+        self.roomId = room.id
+        self.roomType = RoomType(rawValue: room.roomTypeRaw) ?? .livingRoom
+        self.customName = room.customName
+        self.floorIndex = room.floorIndex
+
+        // Load existing corners so the deep scan has the room shape
+        let cornerPairs = room.corners
+        self.corners = cornerPairs.map { SIMD2<Float>(Float($0.0), Float($0.1)) }
+
+        // Carry over previous speed test results
+        self.downloadMbps = room.downloadMbps
+        self.uploadMbps = room.uploadMbps
+        self.pingMs = room.pingMs
+
+        // Start services
+        wifiService.requestLocationPermission()
+        wifiService.startContinuousMonitoring()
+        bleService.startScanning()
+        arService.startSession()
+
+        walkStartedAt = Date()
+        lastWalkPosition = currentPosition()
+
+        // Start sampling and painting, then jump to deep scan
+        startSampling()
+        startBackgroundPainting()
+        phase = .deepScan
     }
 
     /// User pressed "Begin Scan" at the entrance — capture entrance sample and move to corners.
@@ -331,15 +368,12 @@ final class RoomScanCoordinator {
     /// Whether the deep scan offer should be shown (set by finishStandardScan, read by the view).
     var showDeepScanOffer: Bool = false
 
-    /// Called when standard scan steps are done — decides whether to offer deep scan or go to review.
+    /// Called when standard scan steps are done — go straight to review.
+    /// Deep scan is now offered as a Pro option in room detail (Results), not during scan.
     private func finishStandardScan() {
         sampleTimer?.invalidate()
         sampleTimer = nil
         stopBackgroundPainting()
-        if !deepScanOffered {
-            deepScanOffered = true
-            showDeepScanOffer = true
-        }
         phase = .reviewingBeforeSave
     }
 
@@ -424,7 +458,48 @@ final class RoomScanCoordinator {
         let bleCount = bleService.discoveredDevices.count
         let grade = computeGrade()
 
-        // Room
+        // If this is a deep scan for an existing room, update it instead of creating new
+        if let existingRoomId {
+            let idVal = existingRoomId
+            let fetchDesc = FetchDescriptor<Room>(predicate: #Predicate { $0.id == idVal })
+            if let existingRoom = try? modelContext.fetch(fetchDesc).first {
+                existingRoom.lastScannedAt = Date()
+                existingRoom.paintedCellsJSON = encode(cells: paintedCells)
+                existingRoom.paintGridResolutionMeters = gridResolution
+                existingRoom.bleDeviceCount = bleCount
+                existingRoom.gradeScore = grade.score
+                existingRoom.gradeLetterRaw = grade.letter
+                existingRoom.deadZoneCount = grade.weakSpotCount
+                existingRoom.interferenceZoneCount = grade.interferenceCount
+                existingRoom.recommendationCount = grade.recommendationCount
+
+                // Add new heatmap points from the deep scan
+                for s in samples {
+                    let point = HeatmapPoint(
+                        x: Double(s.position.x),
+                        y: 0,
+                        z: Double(s.position.y),
+                        signalStrength: s.signalStrength,
+                        latency: s.latency,
+                        downloadSpeed: s.downloadSpeed,
+                        timestamp: s.timestamp,
+                        sessionId: sessionId,
+                        roomName: customName ?? roomType.label,
+                        floorIndex: floorIndex,
+                        roomId: roomId,
+                        homeId: homeId
+                    )
+                    modelContext.insert(point)
+                }
+
+                try? modelContext.save()
+                phase = .saved
+                stopServices()
+                return
+            }
+        }
+
+        // New room — insert fresh
         let room = Room(
             id: roomId,
             homeId: homeId,
@@ -691,12 +766,12 @@ final class RoomScanCoordinator {
         default:      letter = "F"
         }
 
-        // Weak spot count adapts to download speed — fast rooms tolerate more signal variation
+        // Weak spot count: only flag areas where WiFi genuinely doesn't work.
+        // If download speed is moderate+ (≥25 Mbps), the signal is functional.
         let weakThreshold: Int
-        if downloadMbps >= 100 { weakThreshold = -95 }
-        else if downloadMbps >= 50 { weakThreshold = -90 }
-        else if downloadMbps >= 25 { weakThreshold = -85 }
-        else { weakThreshold = -75 }
+        if downloadMbps >= 25 { weakThreshold = -95 }
+        else if downloadMbps >= 10 { weakThreshold = -90 }
+        else { weakThreshold = -85 }
         let weakSpots = strengths.filter { $0 < weakThreshold }.count
         let interference = bleDeviceIds.count > 15 ? 1 : 0
         let recommendations = (finalScore < 80 ? 1 : 0) + (weakSpots > 2 ? 1 : 0)

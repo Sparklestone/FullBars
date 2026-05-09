@@ -20,6 +20,15 @@ struct RoomScanView: View {
     @State private var customName: String = ""
     @AppStorage("lastUsedFloorIndex") private var selectedFloorIndex: Int = 0
 
+    // Deep scan from Results — pass an existing room to jump straight into deep scan
+    var existingRoom: Room? = nil
+    var startInDeepScan: Bool = false
+
+    init(room: Room? = nil, startInDeepScan: Bool = false) {
+        self.existingRoom = room
+        self.startInDeepScan = startInDeepScan
+    }
+
     // Deep scan offer uses coordinator.showDeepScanOffer
 
     private let cyan = FullBars.Design.Colors.accentCyan
@@ -50,11 +59,7 @@ struct RoomScanView: View {
                 case .deepScan:
                     deepScanScreen
                 case .reviewingBeforeSave:
-                    if coordinator.showDeepScanOffer {
-                        deepScanOfferScreen
-                    } else {
-                        reviewScreen
-                    }
+                    reviewScreen
                 case .saved:
                     savedScreen
                 case .failed(let err):
@@ -69,6 +74,11 @@ struct RoomScanView: View {
                 selectedFloorIndex = 0
             }
             coordinator.deepScanAvailable = subs.isPro
+
+            // If launched from Results for a deep scan, skip setup and go straight to painting
+            if startInDeepScan, let existingRoom, let home {
+                coordinator.startDeepScanForExistingRoom(home: home, room: existingRoom)
+            }
         }
     }
 
@@ -662,106 +672,23 @@ struct RoomScanView: View {
         }
     }
 
-    // MARK: - Deep Scan Offer (Pro)
-
-    private var deepScanOfferScreen: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Spacer()
-                Button { coordinator.showDeepScanOffer = false } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .foregroundStyle(.secondary)
-                        .font(.title3)
-                }
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 8)
-
-            Spacer()
-
-            VStack(spacing: 16) {
-                ZStack {
-                    Circle()
-                        .fill(cyan.opacity(0.15))
-                        .frame(width: 100, height: 100)
-                    Image(systemName: "paintbrush.pointed.fill")
-                        .font(.system(size: 42))
-                        .foregroundStyle(cyan)
-                }
-
-                Text("Want more detail?")
-                    .font(.system(.title3, design: .rounded).weight(.bold))
-                    .foregroundStyle(.white)
-
-                Text("Run a Deep Scan by walking the entire floor. This creates a high-resolution heatmap with precise weak spot detection — ideal for large rooms or detailed analysis.")
-                    .font(.system(.subheadline, design: .rounded))
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 24)
-
-                if !subs.isPro {
-                    HStack(spacing: 6) {
-                        Image(systemName: "crown.fill")
-                            .foregroundStyle(.yellow)
-                            .font(.caption)
-                        Text("Pro feature")
-                            .font(.system(.caption, design: .rounded).weight(.semibold))
-                            .foregroundStyle(.yellow)
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(Color.yellow.opacity(0.12))
-                    .cornerRadius(8)
-                }
-            }
-
-            Spacer()
-
-            VStack(spacing: 10) {
-                if subs.isPro {
-                    Button {
-                        coordinator.showDeepScanOffer = false
-                        coordinator.beginDeepScan()
-                    } label: {
-                        Label("Start deep scan", systemImage: "paintbrush.pointed.fill")
-                            .font(.system(.headline, design: .rounded).weight(.bold))
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 16)
-                            .background(cyan)
-                            .foregroundStyle(.black)
-                            .cornerRadius(14)
-                    }
-                }
-
-                Button {
-                    coordinator.showDeepScanOffer = false
-                    // Already at reviewingBeforeSave, just dismiss the offer
-                } label: {
-                    Text(subs.isPro ? "Skip — standard scan is fine" : "Continue with standard scan")
-                        .font(.system(.subheadline, design: .rounded).weight(.semibold))
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(Color.white.opacity(0.06))
-                        .foregroundStyle(.white)
-                        .cornerRadius(12)
-                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.1), lineWidth: 1))
-                }
-            }
-            .padding(.horizontal, 20)
-            .padding(.bottom, 24)
-        }
-    }
-
     // MARK: - Deep Scan (Paint the floor)
 
     private var deepScanScreen: some View {
         VStack(spacing: 0) {
             VStack(spacing: 0) {
                 HStack {
-                    Button { coordinator.goBackOneStep() } label: {
+                    Button {
+                        if startInDeepScan {
+                            coordinator.cancel()
+                            dismiss()
+                        } else {
+                            coordinator.goBackOneStep()
+                        }
+                    } label: {
                         HStack(spacing: 4) {
-                            Image(systemName: "chevron.left")
-                            Text("Back")
+                            Image(systemName: startInDeepScan ? "xmark" : "chevron.left")
+                            Text(startInDeepScan ? "Cancel" : "Back")
                         }
                         .foregroundStyle(.secondary)
                     }
@@ -865,40 +792,6 @@ struct RoomScanView: View {
                     reviewStatCard("Coverage mapped", value: "\(Int(coordinator.paintedCoverageFraction * 100))%")
                     reviewStatCard("Speed test", value: "\(Int(coordinator.downloadMbps)) ↓ / \(Int(coordinator.uploadMbps)) ↑ Mbps")
                     reviewStatCard("Ping", value: "\(Int(coordinator.pingMs)) ms")
-
-                    // Offer deep scan if Pro and not yet done
-                    if subs.isPro && !coordinator.deepScanOffered {
-                        Button {
-                            coordinator.deepScanOffered = true
-                            coordinator.beginDeepScan()
-                        } label: {
-                            HStack(spacing: 8) {
-                                Image(systemName: "crown.fill")
-                                    .foregroundStyle(.yellow)
-                                Text("Run Deep Scan for more detail")
-                                    .font(.system(.caption, design: .rounded).weight(.semibold))
-                                    .foregroundStyle(.white)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(14)
-                            .background(Color.white.opacity(0.05))
-                            .cornerRadius(12)
-                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.yellow.opacity(0.3), lineWidth: 1))
-                        }
-                    } else if !subs.isPro {
-                        // Soft upsell for free users
-                        HStack(spacing: 8) {
-                            Image(systemName: "crown.fill")
-                                .foregroundStyle(.yellow)
-                                .font(.caption)
-                            Text("Upgrade to Pro for Deep Scan — high-res heatmaps with precise weak spot detection")
-                                .font(.system(.caption2, design: .rounded))
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(12)
-                        .background(Color.white.opacity(0.03))
-                        .cornerRadius(10)
-                    }
                 }
                 .padding(.horizontal, 20)
             }
@@ -946,10 +839,10 @@ struct RoomScanView: View {
                     .font(.system(size: 56))
                     .foregroundStyle(.green)
             }
-            Text("Room saved")
+            Text(startInDeepScan ? "Deep scan saved" : "Room saved")
                 .font(.system(.title2, design: .rounded).weight(.bold))
                 .foregroundStyle(.white)
-            Text("Check the Results tab for your grade.")
+            Text(startInDeepScan ? "Your room data has been updated with the deep scan results." : "Check the Results tab for your grade.")
                 .font(.system(.subheadline, design: .rounded))
                 .foregroundStyle(.secondary)
             Spacer()
