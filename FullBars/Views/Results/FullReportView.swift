@@ -48,6 +48,10 @@ struct FullReportView: View {
         return rooms.reduce(0.0) { $0 + $1.pingMs } / Double(rooms.count)
     }
 
+    private var houseSignalRange: SignalRange {
+        WholeHouseAnalysisService.computeSignalRange(points: allPoints)
+    }
+
     // MARK: - Body
 
     var body: some View {
@@ -376,6 +380,10 @@ private struct FullReportPDFContent: View {
 
     private let cyan = FullBars.Design.Colors.accentCyan
 
+    private var houseSignalRange: SignalRange {
+        WholeHouseAnalysisService.computeSignalRange(points: allPoints)
+    }
+
     private var overallScore: Double {
         guard !rooms.isEmpty else { return 0 }
         return rooms.reduce(0.0) { $0 + $1.gradeScore } / Double(rooms.count)
@@ -566,9 +574,10 @@ private struct FullReportPDFContent: View {
                     room: room,
                     points: roomPoints,
                     weakSpotPoints: weakSpotPointsFor(room: room, points: roomPoints),
-                    weakSpots: CoveragePlanningService.detectWeakSpots(points: roomPoints),
+                    weakSpots: CoveragePlanningService.detectWeakSpots(points: roomPoints, roomDownloadMbps: room.downloadMbps),
                     devices: roomDevices,
-                    doorways: roomDoorways
+                    doorways: roomDoorways,
+                    signalRange: houseSignalRange
                 )
                 .frame(height: 200)
                 .background(Color.black.opacity(0.25))

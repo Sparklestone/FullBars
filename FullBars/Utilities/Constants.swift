@@ -34,6 +34,7 @@ struct AppConstants {
         /// If the room performs at moderate+ level (≥25 Mbps), momentary RSSI dips
         /// are phone orientation / body blocking, not real coverage gaps.
         static func weakSpotThreshold(downloadMbps: Double) -> Int {
+            if downloadMbps >= 50 { return -999 }  // Fast WiFi — no weak spots possible
             if downloadMbps >= 25 { return -95 }   // WiFi works — only flag dead zones
             if downloadMbps >= 10 { return -90 }   // basic browsing — flag truly dead areas
             return -85                              // poor/unmeasured — flag barely usable areas

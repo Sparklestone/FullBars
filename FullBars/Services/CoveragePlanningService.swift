@@ -70,9 +70,12 @@ final class CoveragePlanningService {
         // phone orientation / body blocking, not real coverage gaps.
         // Only flag areas where WiFi genuinely doesn't work.
         let effectiveThreshold: Int
-        if roomDownloadMbps >= 25 {
-            // WiFi works well enough for HD streaming — no real weak spots.
-            // Only flag areas with essentially no signal at all.
+        if roomDownloadMbps >= 50 {
+            // WiFi is fast — no meaningful weak spots possible.
+            // Return empty immediately; signal dips are body/orientation noise.
+            return []
+        } else if roomDownloadMbps >= 25 {
+            // WiFi works well enough for HD streaming — only flag near-dead areas.
             effectiveThreshold = -95
         } else if roomDownloadMbps >= 10 {
             // Basic browsing works but slow — flag truly dead areas

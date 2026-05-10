@@ -423,7 +423,7 @@ struct RoomDetailView: View {
     private func experienceTiers() -> [ExperienceTier] {
         let dl = room.downloadMbps
         let ping = room.pingMs
-        let hasWeakSpots = room.deadZoneCount > 0
+        let hasWeakSpots = !liveWeakSpots.isEmpty
 
         return [
             ExperienceTier(
@@ -1176,44 +1176,56 @@ struct RoomMapCanvas: View {
             }
 
             ZStack {
+                // Build room polygon path once for clipping and drawing
+                let roomPath: Path = {
+                    guard corners.count >= 3 else { return Path() }
+                    var p = Path()
+                    p.move(to: project(corners[0].0, corners[0].1))
+                    for i in 1..<corners.count {
+                        p.addLine(to: project(corners[i].0, corners[i].1))
+                    }
+                    p.closeSubpath()
+                    return p
+                }()
+
+                // Projected corner points for point-in-polygon testing
+                let projectedCorners: [CGPoint] = corners.map { project($0.0, $0.1) }
+
                 // Layer 1: room polygon fill + outline
                 Canvas { ctx, _ in
-                    guard corners.count >= 3 else { return }
-                    var path = Path()
-                    let first = project(corners[0].0, corners[0].1)
-                    path.move(to: first)
-                    for i in 1..<corners.count {
-                        path.addLine(to: project(corners[i].0, corners[i].1))
-                    }
-                    path.closeSubpath()
-                    ctx.fill(path, with: .color(Color.white.opacity(0.04)))
-                    ctx.stroke(path, with: .color(Color.white.opacity(0.35)), lineWidth: 1.5)
+                    ctx.fill(roomPath, with: .color(Color.white.opacity(0.04)))
+                    ctx.stroke(roomPath, with: .color(Color.white.opacity(0.35)), lineWidth: 1.5)
                 }
 
-                // Layer 2: painted cells (removed — was visual clutter)
-
-                // Layer 3: IDW area-based signal heatmap
+                // Layer 2: IDW area-based signal heatmap — clipped to room polygon
                 if points.count >= 3, let range = signalRange {
                     Canvas { ctx, size in
                         drawIDWHeatmap(
                             context: ctx, size: size,
                             points: points, project: project,
                             bounds: bounds, scale: scale,
-                            signalRange: range
+                            signalRange: range,
+                            roomCorners: projectedCorners
                         )
                     }
+                    .clipShape(RoomPolygonShape(corners: projectedCorners))
                 }
 
-                // Layer 3b: sample dots removed — heatmap now covers full room
-
-                // Layer 4: weak spot overlays from CoveragePlanningService
+                // Layer 3: weak spot overlays — clipped to room polygon
                 Canvas { ctx, _ in
                     for dz in weakSpots {
                         drawWeakSpotOverlay(ctx: ctx, weakSpot: dz, project: project, scale: scale)
                     }
                 }
+                .clipShape(RoomPolygonShape(corners: projectedCorners))
 
-                // Layer 5: entrance label (first doorway = entrance from scan)
+                // Room polygon outline on top (re-draw so outline is crisp above heatmap)
+                Canvas { ctx, _ in
+                    ctx.stroke(roomPath, with: .color(Color.white.opacity(0.5)), lineWidth: 1.5)
+                }
+
+                // Layer 4: entrance label (first doorway = entrance from scan)
+                // Rendered OUTSIDE the clip so the label is fully visible at edges
                 if let entrance = doorways.first {
                     let p = project(entrance.x, entrance.z)
                     VStack(spacing: 2) {
@@ -1239,7 +1251,7 @@ struct RoomMapCanvas: View {
                         .position(p)
                 }
 
-                // Layer 6: devices (icons — on top)
+                // Layer 5: devices (icons — on top)
                 ForEach(devices) { dev in
                     let p = project(dev.x, dev.z)
                     ZStack {
@@ -1274,7 +1286,8 @@ struct RoomMapCanvas: View {
         project: (Double, Double) -> CGPoint,
         bounds: Bounds,
         scale: CGFloat,
-        signalRange: SignalRange
+        signalRange: SignalRange,
+        roomCorners: [CGPoint] = []
     ) {
         let cellPx: CGFloat = 8
         let cols = Int(ceil(size.width / cellPx))
@@ -1301,6 +1314,12 @@ struct RoomMapCanvas: View {
             for col in 0..<cols {
                 let cx = CGFloat(col) * cellPx + cellPx / 2
                 let cy = CGFloat(row) * cellPx + cellPx / 2
+
+                // Skip cells outside the room polygon for efficiency
+                if !roomCorners.isEmpty {
+                    let cellPt = CGPoint(x: cx, y: cy)
+                    if !isInsideRoom(cellPt, corners: roomCorners) { continue }
+                }
 
                 // Skip cells that fall inside a weak spot region (leave gaps)
                 let inWeakSpot = dzRegions.contains { region in
@@ -1428,6 +1447,42 @@ struct RoomMapCanvas: View {
     }
 
     // signalColor removed — heatmap now uses uniform faint light blue
+
+    // MARK: - Point-in-polygon test (ray casting)
+    private func isInsideRoom(_ point: CGPoint, corners: [CGPoint]) -> Bool {
+        let n = corners.count
+        guard n >= 3 else { return false }
+        var inside = false
+        var j = n - 1
+        for i in 0..<n {
+            let yi = corners[i].y, yj = corners[j].y
+            let xi = corners[i].x, xj = corners[j].x
+            if ((yi > point.y) != (yj > point.y)) &&
+                (point.x < (xj - xi) * (point.y - yi) / (yj - yi) + xi) {
+                inside.toggle()
+            }
+            j = i
+        }
+        return inside
+    }
+}
+
+// MARK: - Room polygon clip shape
+
+/// Custom Shape that traces the projected room corners for clipping Canvas layers.
+struct RoomPolygonShape: Shape {
+    let corners: [CGPoint]
+
+    func path(in rect: CGRect) -> Path {
+        guard corners.count >= 3 else { return Path() }
+        var p = Path()
+        p.move(to: corners[0])
+        for i in 1..<corners.count {
+            p.addLine(to: corners[i])
+        }
+        p.closeSubpath()
+        return p
+    }
 }
 
 #Preview {
